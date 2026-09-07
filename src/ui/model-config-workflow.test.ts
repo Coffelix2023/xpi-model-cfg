@@ -62,6 +62,16 @@ const nextConfig = parseModelsConfig(
 );
 
 describe("model config panel workflow", () => {
+  it("opens an opaque window with the native title bar", async () => {
+    const state = await fixture();
+    expect(state.glimpse.open).toHaveBeenCalledWith(expect.any(String), {
+      frameless: false,
+      height: 680,
+      title: "xpi-model-cfg",
+      width: 980,
+    });
+  });
+
   it("creates a YAML draft and validates without writing JSON", async () => {
     const state = await fixture();
     expect(await readFile(state.yamlPath, "utf8")).toContain("providers:");

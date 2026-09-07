@@ -57,6 +57,9 @@ describe("model config panel", () => {
     expect(html).toContain('e.key==="ArrowDown"');
     expect(html).toContain('e.key==="ArrowUp"');
     expect(html).toContain('send("apply")');
+    expect(html).not.toContain("backdrop-filter");
+    expect(html).not.toContain("rgba(");
+    expect(html).not.toContain("background:transparent");
   });
 
   it("restores unchanged redacted values while accepting edits", () => {

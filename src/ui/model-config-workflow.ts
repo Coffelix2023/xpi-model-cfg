@@ -36,10 +36,9 @@ export async function runModelConfigPanel(
   });
 
   const window = options.glimpse.open(buildModelConfigPanelHtml(sourceConfig), {
-    frameless: true,
+    frameless: false,
     height: 680,
     title: "xpi-model-cfg",
-    transparent: true,
     width: 980,
   });
   let applying = false;
