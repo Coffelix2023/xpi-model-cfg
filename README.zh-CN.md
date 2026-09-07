@@ -67,8 +67,13 @@ ln -s "$(pwd)" ~/.pi/agent/extensions/xpi-model-cfg
 
 | 命令 | 说明 |
 | :--- | :--- |
-| `/xpi-model-cfg` | 显示扩展状态与已加载版本提示 |
+| `/xpi-model-cfg` | 打开全局 Provider（供应商）与 Model（模型）编辑器 |
 
+## 配置安全
+
+编辑器读取 `~/.pi/agent/models.json`，并维护便于人工编辑的镜像草稿 `~/.pi/agent/models.yml`。“导入 YAML”只重新载入草稿；“校验”和“预览差异”不会写入 JSON（JavaScript Object Notation，JavaScript 对象表示法）文件。
+
+只有“确认应用”会写入。写入前，扩展会检测 `models.json` 是否被外部修改，展示脱敏差异并要求显式确认；确认后生成 `models.json.bak.<timestamp>` 备份，再以 `0600` 权限原子替换。API Key（应用程序接口密钥）与请求头在面板和差异中默认掩码；环境变量和命令引用保持原文，但扩展绝不执行。成功应用后需重载 Pi 模型列表。
 ## 开发命令
 
 | 命令 | 说明 |
