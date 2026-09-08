@@ -21,7 +21,7 @@ interface RunModelConfigPanelOptions {
 }
 
 interface PanelMessage {
-  action: "apply" | "cancel" | "import" | "preview" | "validate";
+  action: "apply" | "cancel" | "confirm" | "import" | "preview" | "validate";
   config?: ModelsConfig;
 }
 
@@ -29,7 +29,7 @@ export async function runModelConfigPanel(
   options: RunModelConfigPanelOptions,
 ): Promise<GlimpseWindow> {
   const baselineSource = await readFile(options.jsonPath, "utf8");
-  const baselineHash = hashText(baselineSource);
+  let baselineHash = hashText(baselineSource);
   let sourceConfig = parseModelsConfig(baselineSource, "json");
   await writeFile(options.yamlPath, exportModelsConfigMirror(sourceConfig, "yaml"), {
     mode: 0o600,
@@ -93,7 +93,7 @@ export async function runModelConfigPanel(
     applying = true;
     try {
       const confirmed = await options.confirm(
-        "应用模型配置？",
+        message.action === "confirm" ? "保存并关闭模型配置？" : "应用模型配置？",
         (preview.redactedDiff || "无变更").slice(0, 6_000),
       );
       if (!confirmed) {
@@ -106,9 +106,11 @@ export async function runModelConfigPanel(
         mode: 0o600,
       });
       sourceConfig = nextConfig;
+      baselineHash = hashText(await readFile(options.jsonPath, "utf8"));
       sendConfig(window, sourceConfig);
       sendResult(window, true, `已应用；备份：${result.backupPath ?? "无"}`);
       options.notify("模型配置已写入，请重载 Pi 模型列表", "info");
+      if (message.action === "confirm") window.close();
     } finally {
       applying = false;
     }
@@ -127,6 +129,7 @@ function decodePanelMessage(value: unknown): PanelMessage {
         action: value.action,
       };
     case "apply":
+    case "confirm":
     case "preview":
     case "validate":
       return {

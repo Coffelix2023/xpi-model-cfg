@@ -53,6 +53,7 @@ describe("model config panel", () => {
     expect(html).toContain('id="b-apply"');
     expect(html).toContain('id="b-cancel"');
     expect(html).toContain('e.key==="Escape"');
+    expect(html).toContain('id="b-confirm"');
     expect(html).toContain('e.key==="Enter"');
     expect(html).toContain('e.key==="ArrowDown"');
     expect(html).toContain('e.key==="ArrowUp"');

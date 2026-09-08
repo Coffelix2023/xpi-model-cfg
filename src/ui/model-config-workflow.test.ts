@@ -119,6 +119,22 @@ describe("model config panel workflow", () => {
     );
   });
 
+  it("keeps apply open and closes after confirm", async () => {
+    const state = await fixture();
+    state.window.emit("message", {
+      action: "apply",
+      config: nextConfig,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(state.window.closed).toBe(false);
+    state.window.emit("message", {
+      action: "confirm",
+      config: nextConfig,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(state.window.closed).toBe(true);
+  });
+
   it("blocks apply after an external change", async () => {
     const state = await fixture();
     await writeFile(

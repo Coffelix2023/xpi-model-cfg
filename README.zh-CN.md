@@ -73,7 +73,8 @@ ln -s "$(pwd)" ~/.pi/agent/extensions/xpi-model-cfg
 
 编辑器读取 `~/.pi/agent/models.json`，并维护便于人工编辑的镜像草稿 `~/.pi/agent/models.yml`。“导入 YAML”只重新载入草稿；“校验”和“预览差异”不会写入 JSON（JavaScript Object Notation，JavaScript 对象表示法）文件。
 
-只有“确认应用”会写入。写入前，扩展会检测 `models.json` 是否被外部修改，展示脱敏差异并要求显式确认；确认后生成 `models.json.bak.<timestamp>` 备份，再以 `0600` 权限原子替换。API Key（应用程序接口密钥）与请求头在面板和差异中默认掩码；环境变量和命令引用保持原文，但扩展绝不执行。成功应用后需重载 Pi 模型列表。
+**应用**会保存配置并保持编辑器打开，便于继续修改。**确定**会在成功写入后保存配置并关闭编辑器。任一动作写入前，扩展都会检查 `models.json` 是否被外部修改，展示脱敏差异并要求显式确认；确认后生成 `models.json.bak.<timestamp>` 备份，再以 `0600` 权限原子替换文件。API Key（应用程序接口密钥）与请求头在面板和差异中默认掩码；环境变量和命令引用保持原文，但扩展绝不执行。成功应用后需重载 Pi 模型列表。
+
 ## 开发命令
 
 | 命令 | 说明 |
