@@ -152,8 +152,24 @@ describe("model config panel workflow", () => {
     expect(state.window.sent.join("\n")).toMatch(EXTERNAL_CHANGE_ERROR);
   });
 
-  it("cancels without writing", async () => {
+  it("confirms before closing without writing", async () => {
     const state = await fixture();
+    state.confirm.mockResolvedValueOnce(false);
+    state.window.emit("message", {
+      action: "cancel",
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(state.window.closed).toBe(false);
+    expect(state.confirm).toHaveBeenCalledWith(
+      "取消模型配置？",
+      [
+        "未应用的修改",
+        "将丢失，确定关闭窗口？",
+      ].join(""),
+    );
+
+    state.confirm.mockResolvedValueOnce(true);
     state.window.emit("message", {
       action: "cancel",
     });

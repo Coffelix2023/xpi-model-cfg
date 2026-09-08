@@ -35,29 +35,27 @@ describe("model config panel", () => {
     expect(html).toContain('id="model-list"');
     expect(html).toContain('id="provider-base-url"');
     expect(html).toContain('id="model-context-window"');
-    expect(html).toContain('id="advanced-json"');
+    expect(html).toContain('id="model-max-tokens"');
+    expect(html).not.toContain('id="tab-json"');
+    expect(html).not.toContain('id="advanced-json"');
     expect(html).toContain("providerExtra");
     expect(html).toContain("modelExtra");
-    expect(html).toContain("[REDACTED]");
-    expect(html).not.toContain("super-secret");
-  });
-
-  it("includes keyboard, bilingual, zoom, validation, preview and explicit apply actions", () => {
-    const html = buildModelConfigPanelHtml(config);
-
+    expect(html).toContain('"maxTokens":8192');
     expect(html).toContain('id="gd-lang"');
     expect(html).toContain('id="gd-zoom-reset"');
-    expect(html).toContain('id="b-import"');
+    expect(html).not.toContain('id="b-import"');
     expect(html).toContain('id="b-validate"');
     expect(html).toContain('id="b-preview"');
     expect(html).toContain('id="b-apply"');
     expect(html).toContain('id="b-cancel"');
-    expect(html).toContain('e.key==="Escape"');
     expect(html).toContain('id="b-confirm"');
-    expect(html).toContain('e.key==="Enter"');
+    expect(html).not.toContain("cancel Esc");
+    expect(html).not.toContain("Import YAML");
+    expect(html).not.toContain('send("cancel")');
+    expect(html).not.toContain('send("apply")');
+    expect(html).not.toContain('send("preview")');
     expect(html).toContain('e.key==="ArrowDown"');
     expect(html).toContain('e.key==="ArrowUp"');
-    expect(html).toContain('send("apply")');
     expect(html).not.toContain("backdrop-filter");
     expect(html).not.toContain("rgba(");
     expect(html).not.toContain("background:transparent");

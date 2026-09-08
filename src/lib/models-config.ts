@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
-const SENSITIVE_KEY_PATTERN = /(^apiKey$|authorization|secret|token|key$)/i;
+const SENSITIVE_KEY_PATTERN = /(^apiKey$|authorization|secret|token$|key$)/i;
 
 export const MODEL_CONFIG_FIELD_GROUPS = {
   samplingParams: [],

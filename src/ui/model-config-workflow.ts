@@ -21,7 +21,7 @@ interface RunModelConfigPanelOptions {
 }
 
 interface PanelMessage {
-  action: "apply" | "cancel" | "confirm" | "import" | "preview" | "validate";
+  action: "apply" | "cancel" | "confirm" | "preview" | "validate";
   config?: ModelsConfig;
 }
 
@@ -58,16 +58,14 @@ export async function runModelConfigPanel(
   async function handleMessage(value: unknown): Promise<void> {
     const message = decodePanelMessage(value);
     if (message.action === "cancel") {
-      window.close();
-      return;
-    }
-    if (message.action === "import") {
-      sourceConfig = parseModelsConfig(
-        await readFile(options.yamlPath, "utf8"),
-        "yaml",
+      const confirmed = await options.confirm(
+        "取消模型配置？",
+        [
+          "未应用的修改",
+          "将丢失，确定关闭窗口？",
+        ].join(""),
       );
-      sendConfig(window, sourceConfig);
-      sendResult(window, true, "YAML 草稿已导入");
+      if (confirmed) window.close();
       return;
     }
 
@@ -124,7 +122,6 @@ function decodePanelMessage(value: unknown): PanelMessage {
 
   switch (value.action) {
     case "cancel":
-    case "import":
       return {
         action: value.action,
       };

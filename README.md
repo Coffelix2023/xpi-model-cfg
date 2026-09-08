@@ -71,9 +71,9 @@ Inside a running Pi session, use `/reload` to hot-reload the extension.
 
 ## Configuration safety
 
-The editor reads `~/.pi/agent/models.json` and keeps a human-editable mirror at `~/.pi/agent/models.yml`. **Import YAML** reloads that draft; **Validate** and **Preview diff** never write the JSON file.
+The editor reads `~/.pi/agent/models.json` and automatically maintains `~/.pi/agent/models.yml` as a human-readable mirror. YAML is not an independent editing source and has no import action. The global JSON editor is intentionally omitted; structured fields and the model advanced JSON field are the editing surface. Validate and Preview diff never write the JSON file.
 
-**Apply** saves the configuration and keeps the editor open for further changes. **OK** saves the configuration and closes the editor after a successful write. Before either action writes, the extension checks that `models.json` has not changed externally, shows a redacted diff, asks for explicit confirmation, creates `models.json.bak.<timestamp>`, and atomically replaces the file with mode `0600`. API keys and headers are masked in the panel and diff; environment-variable and command references are preserved but never executed. Reload Pi after a successful apply.
+**Apply** saves the configuration and keeps the editor open. **OK** saves the configuration and closes the editor. **Cancel** asks for confirmation before closing and discards unapplied changes. Each action requires an explicit confirmation. Before either save action writes, the extension checks that `models.json` has not changed externally, shows a redacted diff, creates `models.json.bak.<timestamp>` as the rollback safety valve, and atomically replaces the file with mode `0600`; the YAML mirror is then updated from the saved configuration. API keys and headers are masked in the panel and diff; environment-variable and command references are preserved but never executed. Reload Pi after a successful apply.
 
 ## Development
 
