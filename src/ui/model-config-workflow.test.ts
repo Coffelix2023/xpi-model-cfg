@@ -63,6 +63,7 @@ describe("model config panel workflow", () => {
     expect(state.glimpse.open).toHaveBeenCalledWith(expect.any(String), {
       frameless: false,
       height: 680,
+      minWidth: 820,
       title: "xpi-model-cfg",
       width: 980,
     });
@@ -118,6 +119,8 @@ describe("model config panel workflow", () => {
     expect(parseModelsConfig(await readFile(state.jsonPath, "utf8"), "json")).toEqual(
       nextConfig,
     );
+    expect(state.window.sent.join("\n")).not.toContain("备份");
+    expect(state.window.sent.join("\n")).toContain("YAML");
   });
 
   it("keeps an existing API key when another provider field changes", async () => {
@@ -213,5 +216,20 @@ describe("model config panel workflow", () => {
 
     expect(state.window.closed).toBe(true);
     expect(await readFile(state.jsonPath, "utf8")).toBe(state.source);
+  });
+  it("keeps the panel state after apply instead of sending a reset config", async () => {
+    const state = await fixture(
+      '{"providers":{"first":{"models":[{"id":"first-model"}]},"second":{"models":[{"id":"second-model"}]}}}\n',
+    );
+    state.window.emit("message", {
+      action: "apply",
+      config: parseModelsConfig(
+        '{"providers":{"first":{"models":[{"id":"first-model"}]},"second":{"models":[{"id":"second-model"}]}}}',
+        "json",
+      ),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(state.window.sent.join("\n")).not.toContain('"type":"config"');
   });
 });

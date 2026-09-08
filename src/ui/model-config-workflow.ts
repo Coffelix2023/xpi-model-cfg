@@ -11,9 +11,11 @@ import { writeModelsJsonAtomically } from "../lib/models-persistence.ts";
 import type { GlimpseModule, GlimpseWindow } from "./glimpse-runtime.ts";
 import {
   buildModelConfigPanelHtml,
+  MODEL_CONFIG_PANEL_MIN_WIDTH,
   parsePanelConfig,
-  redactPanelConfig,
 } from "./model-config-panel.ts";
+
+const MODEL_CONFIG_WINDOW_WIDTH = 980;
 
 interface RunModelConfigPanelOptions {
   glimpse: GlimpseModule;
@@ -47,8 +49,9 @@ export async function runModelConfigPanel(
   const window = options.glimpse.open(buildModelConfigPanelHtml(sourceConfig), {
     frameless: false,
     height: 680,
+    minWidth: MODEL_CONFIG_PANEL_MIN_WIDTH,
     title: "xpi-model-cfg",
-    width: 980,
+    width: MODEL_CONFIG_WINDOW_WIDTH,
   });
   let applying = false;
 
@@ -100,14 +103,13 @@ export async function runModelConfigPanel(
     if (applying) return;
     applying = true;
     try {
-      const result = await writeModelsJsonAtomically(options.jsonPath, nextConfig);
+      await writeModelsJsonAtomically(options.jsonPath, nextConfig);
       await writeFile(options.yamlPath, exportModelsConfigMirror(nextConfig, "yaml"), {
         mode: 0o600,
       });
       sourceConfig = nextConfig;
       baselineHash = hashText(await readFile(options.jsonPath, "utf8"));
-      sendConfig(window, sourceConfig);
-      sendResult(window, true, `已应用；备份：${result.backupPath ?? "无"}`);
+      sendResult(window, true, "已应用；已更新 YAML 镜像");
       options.notify("模型配置已写入，请重载 Pi 模型列表", "info");
       if (message.action === "confirm") window.close();
     } finally {
@@ -146,12 +148,6 @@ function validateConfigInput(value: unknown): ModelsConfig {
   return parseModelsConfig(JSON.stringify(value), "json");
 }
 
-function sendConfig(window: GlimpseWindow, config: ModelsConfig): void {
-  postMessage(window, {
-    config: redactPanelConfig(config),
-    type: "config",
-  });
-}
 function sendConfirmation(
   window: GlimpseWindow,
   action: "apply" | "confirm",

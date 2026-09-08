@@ -108,4 +108,79 @@ describe("model config panel", () => {
     expect(html).toContain('"delete-model"');
     expect(html).toContain('el("model-add").disabled=providerCount===0');
   });
+  it("blocks deleting a provider that still has models", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[{"id":"m"}]}}}', "json"),
+    );
+
+    expect(html).toContain("请先清空供应商中的模型");
+    expect(html).toContain("models.length");
+  });
+  it("sizes the provider and model panes to their content", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig(
+        '{"providers":{"a-very-long-provider-name":{"models":[{"id":"a-very-long-model-name"}]}}}',
+        "json",
+      ),
+    );
+
+    expect(html).toContain(
+      "grid-template-columns:max-content max-content minmax(320px,1fr)",
+    );
+    expect(html).toContain("white-space:nowrap");
+    expect(html).toContain("text-overflow:clip");
+  });
+  it("hides model fields without a model and defaults new model parameters", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[]}}}', "json"),
+    );
+
+    expect(html).toContain('el("model-view").classList.toggle("hidden",!m)');
+    expect(html).toContain(
+      "models.concat([{id:id,contextWindow:300000,maxTokens:24000}])",
+    );
+    expect(html).toContain('el("model-context-window").value=model.contextWindow||""');
+    expect(html).toContain('el("model-max-tokens").value=model.maxTokens||""');
+  });
+
+  it("defaults thinking levels and writes unchecked levels as null", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig(
+        '{"providers":{"p":{"models":[{"id":"m","thinkingLevelMap":{"custom":"keep"}}]}}}',
+        "json",
+      ),
+    );
+
+    expect(html).toContain('value===undefined?level!=="xhigh"');
+    expect(html).toContain(
+      "Object.keys(thinking).forEach(function(level){thinking[level]=null})",
+    );
+    expect(html).toContain('thinking[level]=el("thinking-"+level).checked');
+  });
+
+  it("uses text and image checkboxes with all inputs selected by default", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[{"id":"m"}]}}}', "json"),
+    );
+
+    expect(html).toContain('id="model-input-text" type="checkbox"');
+    expect(html).toContain('id="model-input-image" type="checkbox"');
+    expect(html).not.toContain('id="model-input" placeholder="text,image"');
+    expect(html).toContain(
+      "!Array.isArray(model.input)||inputTypes.indexOf(type)!==-1",
+    );
+    expect(html).toContain('var inputs=["text","image"].filter');
+  });
+
+  it("uses CNY as the stored cost basis and converts only explicit USD display", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig(
+        '{"providers":{"p":{"models":[{"id":"m","cost":{"input":7}}]}}}',
+        "json",
+      ),
+    );
+
+    expect(html).toContain('activeCurrency==="CNY"?number:number/7');
+    expect(html).toContain('activeCurrency==="CNY"?value:value*7');
+  });
 });
