@@ -23,11 +23,10 @@ class FakeWindow extends EventEmitter implements GlimpseWindow {
   }
 }
 
-async function fixture() {
+async function fixture(source = '{"providers":{"local":{"models":[{"id":"old"}]}}}\n') {
   const dir = await mkdtemp(join(tmpdir(), "xpi-model-panel-"));
   const jsonPath = join(dir, "models.json");
   const yamlPath = join(dir, "models.yml");
-  const source = '{"providers":{"local":{"models":[{"id":"old"}]}}}\n';
   await writeFile(jsonPath, source, {
     mode: 0o600,
   });
@@ -121,6 +120,58 @@ describe("model config panel workflow", () => {
     );
   });
 
+  it("keeps an existing API key when another provider field changes", async () => {
+    const state = await fixture(
+      '{"providers":{"local":{"apiKey":"secret","baseUrl":"old","models":[{"id":"old"}]}}}\n',
+    );
+    state.window.emit("message", {
+      action: "apply",
+      config: {
+        providers: {
+          local: {
+            baseUrl: "new",
+            models: [
+              {
+                id: "old",
+              },
+            ],
+          },
+        },
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const saved = parseModelsConfig(await readFile(state.jsonPath, "utf8"), "json");
+    expect(saved.providers.local).toMatchObject({
+      apiKey: "secret",
+      baseUrl: "new",
+    });
+  });
+
+  it("replaces an existing API key with a new value", async () => {
+    const state = await fixture(
+      '{"providers":{"local":{"apiKey":"old","models":[{"id":"old"}]}}}\n',
+    );
+    state.window.emit("message", {
+      action: "apply",
+      config: {
+        providers: {
+          local: {
+            apiKey: "new",
+            models: [
+              {
+                id: "old",
+              },
+            ],
+          },
+        },
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const saved = parseModelsConfig(await readFile(state.jsonPath, "utf8"), "json");
+    expect(saved.providers.local?.apiKey).toBe("new");
+  });
   it("keeps apply open and closes after confirm", async () => {
     const state = await fixture();
     state.window.emit("message", {

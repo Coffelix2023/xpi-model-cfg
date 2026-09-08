@@ -1,84 +1,111 @@
 import { describe, expect, it } from "vitest";
-
-import type { ModelsConfig } from "../lib/models-config.ts";
+import { parseModelsConfig } from "../lib/models-config.ts";
 import {
   buildModelConfigPanelHtml,
+  redactPanelConfig,
   restoreRedactedValues,
 } from "./model-config-panel.ts";
 
-const config: ModelsConfig = {
-  providers: {
-    local: {
-      api: "openai-completions",
-      apiKey: "super-secret",
-      providerExtra: "kept",
-      models: [
-        {
-          contextWindow: 128_000,
-          id: "model-a",
-          maxTokens: 8_192,
-          name: "Model A",
-          modelExtra: {
-            keep: true,
+describe("model config panel", () => {
+  it("shows environment references but masks literal and command API keys", () => {
+    const envReference = "prefix-$API_KEY-" + "${" + "OTHER}";
+    const config = parseModelsConfig(
+      JSON.stringify({
+        providers: {
+          command: {
+            apiKey: "!security-cli token",
+            models: [],
+          },
+          env: {
+            apiKey: envReference,
+            models: [],
+          },
+          literal: {
+            apiKey: "plain-secret",
+            models: [],
           },
         },
-      ],
-    },
-  },
-};
+      }),
+      "json",
+    );
 
-describe("model config panel", () => {
-  it("renders structured provider/model controls without embedding secrets", () => {
-    const html = buildModelConfigPanelHtml(config);
-
-    expect(html).toContain('id="provider-list"');
-    expect(html).toContain('id="model-list"');
-    expect(html).toContain('id="provider-base-url"');
-    expect(html).toContain('id="model-context-window"');
-    expect(html).toContain('id="model-max-tokens"');
-    expect(html).not.toContain('id="tab-json"');
-    expect(html).not.toContain('id="advanced-json"');
-    expect(html).toContain("providerExtra");
-    expect(html).toContain("modelExtra");
-    expect(html).toContain('"maxTokens":8192');
-    expect(html).toContain('id="gd-lang"');
-    expect(html).toContain('id="gd-zoom-reset"');
-    expect(html).not.toContain('id="b-import"');
-    expect(html).toContain('id="b-validate"');
-    expect(html).toContain('id="b-preview"');
-    expect(html).toContain('id="b-apply"');
-    expect(html).toContain('id="b-cancel"');
-    expect(html).toContain('id="b-confirm"');
-    expect(html).toContain('id="confirm-dialog"');
-    expect(html).toContain("function status(message,ok)");
-    expect(html).toContain("requestAction(action)");
-    expect(html).toContain('send("prepare-"+action)');
-    expect(html).not.toContain("cancel Esc");
-    expect(html).not.toContain("Import YAML");
-    expect(html).not.toContain('send("cancel")');
-    expect(html).not.toContain('send("apply")');
-    expect(html).not.toContain('send("preview")');
-    expect(html).toContain('e.key==="ArrowDown"');
-    expect(html).toContain('e.key==="ArrowUp"');
-    expect(html).not.toContain("backdrop-filter");
-    expect(html).not.toContain("rgba(");
-    expect(html).not.toContain("background:transparent");
-  });
-
-  it("restores unchanged redacted values while accepting edits", () => {
-    const edited = structuredClone(config);
-    if (!edited.providers.local) throw new Error("fixture provider missing");
-    edited.providers.local.apiKey = "[REDACTED]";
-    edited.providers.local.api = "openai-responses";
-
-    expect(restoreRedactedValues(config, edited)).toMatchObject({
-      providers: {
-        local: {
-          api: "openai-responses",
-          apiKey: "super-secret",
-          providerExtra: "kept",
-        },
+    expect(redactPanelConfig(config).providers).toMatchObject({
+      command: {
+        apiKey: "[REDACTED]",
+      },
+      env: {
+        apiKey: envReference,
+      },
+      literal: {
+        apiKey: "[REDACTED]",
       },
     });
+    const html = buildModelConfigPanelHtml(config);
+    expect(html).toContain('id="provider-api-key" autocomplete="off" type="password"');
+    expect(html).not.toContain("plain-secret");
+    expect(html).toContain(envReference);
+  });
+
+  it("restores an existing API key when the panel omits or leaves it redacted", () => {
+    const original = parseModelsConfig(
+      '{"providers":{"keep":{"apiKey":"secret","models":[]},"replace":{"apiKey":"old","models":[]}}}',
+      "json",
+    );
+    const edited = parseModelsConfig(
+      '{"providers":{"keep":{"models":[]},"replace":{"apiKey":"new","models":[]}}}',
+      "json",
+    );
+
+    expect(restoreRedactedValues(original, edited).providers).toMatchObject({
+      keep: {
+        apiKey: "secret",
+      },
+      replace: {
+        apiKey: "new",
+      },
+    });
+  });
+
+  it("uses fixed thinking-level checkbox order and removes the advanced JSON editor", () => {
+    const config = parseModelsConfig(
+      '{"providers":{"p":{"models":[{"id":"m","thinkingLevelMap":{"custom":"keep","medium":"medium"},"compat":{"x":true}}]}}}',
+      "json",
+    );
+    const html = buildModelConfigPanelHtml(config);
+
+    expect(html.indexOf('id="thinking-medium"')).toBeLessThan(
+      html.indexOf('id="thinking-high"'),
+    );
+    expect(html.indexOf('id="thinking-high"')).toBeLessThan(
+      html.indexOf('id="thinking-xhigh"'),
+    );
+    expect(html).not.toContain('id="model-advanced-json"');
+    expect(html).toContain('class="field thinking-levels"');
+    expect(html).toContain("var thinking=Object.assign({},m.thinkingLevelMap)");
+    expect(html).toContain('thinking[level]=el("thinking-"+level).checked');
+    expect(html).toContain('"custom":"keep"');
+    expect(html).toContain('"compat":{"x":true}');
+    expect(html).not.toContain("modelAdvanced");
+  });
+
+  it("adds provider and model management controls with reorder and delete confirmation", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig(
+        '{"providers":{"a":{"models":[{"id":"m"}]},"b":{"models":[]}}}',
+        "json",
+      ),
+    );
+
+    expect(html).toContain('id="provider-up"');
+    expect(html).toContain('id="provider-down"');
+    expect(html).toContain('id="provider-add"');
+    expect(html).toContain('id="provider-delete"');
+    expect(html).toContain('id="model-add"');
+    expect(html).toContain('id="model-delete"');
+    expect(html).toContain("row.draggable=true");
+    expect(html).toContain("showConfirmation(action)");
+    expect(html).toContain('"delete-provider"');
+    expect(html).toContain('"delete-model"');
+    expect(html).toContain('el("model-add").disabled=providerCount===0');
   });
 });

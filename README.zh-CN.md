@@ -71,9 +71,9 @@ ln -s "$(pwd)" ~/.pi/agent/extensions/xpi-model-cfg
 
 ## 配置安全
 
-编辑器读取 `~/.pi/agent/models.json`，并自动维护 `~/.pi/agent/models.yml` 作为便于人工阅读的镜像。YAML（Yet Another Markup Language，一种配置标记语言）不是独立编辑源，也不提供导入操作。面板去掉全局 JSON（JavaScript Object Notation，JavaScript 对象表示法）编辑页，只保留结构化字段和“模型高级字段 JSON”。“校验”和“预览差异”不会写入配置文件。
+编辑器读取 `~/.pi/agent/models.json`，并自动维护 `~/.pi/agent/models.yml` 作为便于人工阅读的镜像。YAML（Yet Another Markup Language，一种配置标记语言）不是独立编辑源，也不提供导入操作。面板去掉全局 JSON（JavaScript Object Notation，JavaScript 对象表示法）编辑页，只保留供应商和模型结构化字段；思考等级使用 `medium`、`high`、`xhigh` 复选框。“校验”和“预览差异”不会写入配置文件。
 
-**应用**会保存配置并保持编辑器打开。**确定**会保存配置并关闭编辑器。**取消**会丢弃未应用修改。三个按钮都在 Glimpse 面板内要求一次明确确认，保存确认同时展示脱敏差异。写入前扩展会检查 `models.json` 是否被外部修改，生成 `models.json.bak.<timestamp>` 作为回滚安全阀，再以 `0600` 权限原子替换文件；成功后从已保存配置更新 YAML 镜像。API Key（应用程序接口密钥）与请求头在面板和差异中默认掩码；环境变量和命令引用保持原文，但扩展绝不执行。成功应用后需重载 Pi 模型列表。
+**应用**会保存配置并保持编辑器打开。**确定**会保存配置并关闭编辑器。**取消**会丢弃未应用修改。供应商支持拖放排序和上下移动按钮，也支持新增与删除；模型支持新增与删除。删除操作必须二次确认，取消确认不会改变配置。三个保存操作都在 Glimpse 面板内要求一次明确确认，保存确认同时展示脱敏差异。写入前扩展会检查 `models.json` 是否被外部修改，生成 `models.json.bak.<timestamp>` 作为回滚安全阀，再以 `0600` 权限原子替换文件；成功后从已保存配置更新 YAML 镜像。字面 API Key（应用程序接口密钥）和 `!command` 引用在面板与差异中默认掩码；环境变量表达式保持原文，但扩展绝不解析或执行。成功应用后需重载 Pi 模型列表。
 
 ## 开发命令
 

@@ -6,11 +6,14 @@ import {
   hashText,
   type ModelsConfig,
   parseModelsConfig,
-  redactModelsConfig,
 } from "../lib/models-config.ts";
 import { writeModelsJsonAtomically } from "../lib/models-persistence.ts";
 import type { GlimpseModule, GlimpseWindow } from "./glimpse-runtime.ts";
-import { buildModelConfigPanelHtml, parsePanelConfig } from "./model-config-panel.ts";
+import {
+  buildModelConfigPanelHtml,
+  parsePanelConfig,
+  redactPanelConfig,
+} from "./model-config-panel.ts";
 
 interface RunModelConfigPanelOptions {
   glimpse: GlimpseModule;
@@ -145,11 +148,10 @@ function validateConfigInput(value: unknown): ModelsConfig {
 
 function sendConfig(window: GlimpseWindow, config: ModelsConfig): void {
   postMessage(window, {
-    config: redactModelsConfig(config),
+    config: redactPanelConfig(config),
     type: "config",
   });
 }
-
 function sendConfirmation(
   window: GlimpseWindow,
   action: "apply" | "confirm",
