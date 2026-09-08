@@ -30,7 +30,6 @@ export default function xpiModelCfg(
 
         const dir = join(homedir(), ".pi", "agent");
         await runModelConfigPanel({
-          confirm: (title, message) => ctx.ui.confirm(title, message),
           glimpse,
           jsonPath: join(dir, "models.json"),
           yamlPath: join(dir, "models.yml"),

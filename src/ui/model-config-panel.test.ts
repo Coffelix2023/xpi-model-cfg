@@ -49,6 +49,10 @@ describe("model config panel", () => {
     expect(html).toContain('id="b-apply"');
     expect(html).toContain('id="b-cancel"');
     expect(html).toContain('id="b-confirm"');
+    expect(html).toContain('id="confirm-dialog"');
+    expect(html).toContain("function status(message,ok)");
+    expect(html).toContain("requestAction(action)");
+    expect(html).toContain('send("prepare-"+action)');
     expect(html).not.toContain("cancel Esc");
     expect(html).not.toContain("Import YAML");
     expect(html).not.toContain('send("cancel")');

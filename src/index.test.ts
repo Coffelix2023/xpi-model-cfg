@@ -67,7 +67,6 @@ describe("xpi-model-cfg extension", () => {
 
     await command.handler("", {
       ui: {
-        confirm: vi.fn(),
         notify,
       },
     });

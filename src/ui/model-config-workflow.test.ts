@@ -35,18 +35,15 @@ async function fixture() {
   const glimpse: GlimpseModule = {
     open: vi.fn(() => window),
   };
-  const confirm = vi.fn(async () => true);
   const notify = vi.fn();
 
   await runModelConfigPanel({
-    confirm,
     glimpse,
     jsonPath,
     notify,
     yamlPath,
   });
   return {
-    confirm,
     glimpse,
     jsonPath,
     notify,
@@ -96,24 +93,29 @@ describe("model config panel workflow", () => {
 
     expect(await readFile(state.jsonPath, "utf8")).toBe(state.source);
     expect(state.window.sent.join("\n")).toContain('\\"id\\": \\"old\\"');
-    expect(state.confirm).not.toHaveBeenCalled();
   });
 
-  it("writes only after explicit confirmation", async () => {
+  it("prepares an in-panel confirmation with the redacted diff", async () => {
     const state = await fixture();
-    state.confirm.mockResolvedValueOnce(false);
     state.window.emit("message", {
-      action: "apply",
+      action: "prepare-apply",
       config: nextConfig,
     });
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(await readFile(state.jsonPath, "utf8")).toBe(state.source);
 
+    expect(await readFile(state.jsonPath, "utf8")).toBe(state.source);
+    expect(state.window.sent.join("\n")).toContain('"type":"confirmation"');
+    expect(state.window.sent.join("\n")).toContain('\\"id\\": \\"old\\"');
+  });
+
+  it("applies an action already confirmed by the panel", async () => {
+    const state = await fixture();
     state.window.emit("message", {
       action: "apply",
       config: nextConfig,
     });
     await new Promise((resolve) => setTimeout(resolve, 20));
+
     expect(parseModelsConfig(await readFile(state.jsonPath, "utf8"), "json")).toEqual(
       nextConfig,
     );
@@ -148,28 +150,11 @@ describe("model config panel workflow", () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 20));
 
-    expect(state.confirm).not.toHaveBeenCalled();
     expect(state.window.sent.join("\n")).toMatch(EXTERNAL_CHANGE_ERROR);
   });
 
-  it("confirms before closing without writing", async () => {
+  it("closes a cancellation already confirmed by the panel without writing", async () => {
     const state = await fixture();
-    state.confirm.mockResolvedValueOnce(false);
-    state.window.emit("message", {
-      action: "cancel",
-    });
-    await new Promise((resolve) => setImmediate(resolve));
-
-    expect(state.window.closed).toBe(false);
-    expect(state.confirm).toHaveBeenCalledWith(
-      "取消模型配置？",
-      [
-        "未应用的修改",
-        "将丢失，确定关闭窗口？",
-      ].join(""),
-    );
-
-    state.confirm.mockResolvedValueOnce(true);
     state.window.emit("message", {
       action: "cancel",
     });

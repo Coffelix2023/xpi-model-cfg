@@ -13,7 +13,6 @@ import type { GlimpseModule, GlimpseWindow } from "./glimpse-runtime.ts";
 import { buildModelConfigPanelHtml, parsePanelConfig } from "./model-config-panel.ts";
 
 interface RunModelConfigPanelOptions {
-  confirm(title: string, message: string): Promise<boolean>;
   glimpse: GlimpseModule;
   jsonPath: string;
   notify(message: string, level?: "info" | "warning" | "error"): void;
@@ -21,7 +20,14 @@ interface RunModelConfigPanelOptions {
 }
 
 interface PanelMessage {
-  action: "apply" | "cancel" | "confirm" | "preview" | "validate";
+  action:
+    | "apply"
+    | "cancel"
+    | "confirm"
+    | "prepare-apply"
+    | "prepare-confirm"
+    | "preview"
+    | "validate";
   config?: ModelsConfig;
 }
 
@@ -58,14 +64,7 @@ export async function runModelConfigPanel(
   async function handleMessage(value: unknown): Promise<void> {
     const message = decodePanelMessage(value);
     if (message.action === "cancel") {
-      const confirmed = await options.confirm(
-        "取消模型配置？",
-        [
-          "未应用的修改",
-          "将丢失，确定关闭窗口？",
-        ].join(""),
-      );
-      if (confirmed) window.close();
+      window.close();
       return;
     }
 
@@ -86,19 +85,18 @@ export async function runModelConfigPanel(
       sendResult(window, true, preview.redactedDiff || "无变更");
       return;
     }
+    if (message.action === "prepare-apply" || message.action === "prepare-confirm") {
+      sendConfirmation(
+        window,
+        message.action === "prepare-confirm" ? "confirm" : "apply",
+        (preview.redactedDiff || "无变更").slice(0, 6_000),
+      );
+      return;
+    }
 
     if (applying) return;
     applying = true;
     try {
-      const confirmed = await options.confirm(
-        message.action === "confirm" ? "保存并关闭模型配置？" : "应用模型配置？",
-        (preview.redactedDiff || "无变更").slice(0, 6_000),
-      );
-      if (!confirmed) {
-        sendResult(window, false, "已取消应用");
-        return;
-      }
-
       const result = await writeModelsJsonAtomically(options.jsonPath, nextConfig);
       await writeFile(options.yamlPath, exportModelsConfigMirror(nextConfig, "yaml"), {
         mode: 0o600,
@@ -128,6 +126,8 @@ function decodePanelMessage(value: unknown): PanelMessage {
     case "apply":
     case "confirm":
     case "preview":
+    case "prepare-apply":
+    case "prepare-confirm":
     case "validate":
       return {
         action: value.action,
@@ -147,6 +147,18 @@ function sendConfig(window: GlimpseWindow, config: ModelsConfig): void {
   postMessage(window, {
     config: redactModelsConfig(config),
     type: "config",
+  });
+}
+
+function sendConfirmation(
+  window: GlimpseWindow,
+  action: "apply" | "confirm",
+  message: string,
+): void {
+  postMessage(window, {
+    action,
+    message,
+    type: "confirmation",
   });
 }
 
