@@ -81,7 +81,9 @@ describe("model config panel", () => {
     );
     expect(html).not.toContain('id="model-advanced-json"');
     expect(html).toContain('class="field thinking-levels"');
-    expect(html).toContain("var thinking=Object.assign({},m.thinkingLevelMap)");
+    expect(html).toContain(
+      "var thinking=Object.assign({medium:null,high:null,off:null,minimal:null,low:null,xhigh:null,max:null},m.thinkingLevelMap)",
+    );
     expect(html).toContain('thinking[level]=el("thinking-"+level).checked');
     expect(html).toContain('"custom":"keep"');
     expect(html).toContain('"compat":{"x":true}');
