@@ -108,6 +108,22 @@ describe("model config panel", () => {
     expect(html).toContain('"delete-model"');
     expect(html).toContain('el("model-add").disabled=providerCount===0');
   });
+  it("loads and sends provider order separately from the Pi config", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig(
+        '{"providers":{"alpha":{"models":[]},"beta":{"models":[]}}}',
+        "json",
+      ),
+      [
+        "beta",
+        "alpha",
+      ],
+    );
+    expect(html).toContain('providerOrder=["beta","alpha"]');
+    expect(html).toContain("providerOrder:providerOrder.slice()");
+    expect(html).not.toContain("xpiProviderOrder");
+  });
+
   it("blocks deleting a provider that still has models", () => {
     const html = buildModelConfigPanelHtml(
       parseModelsConfig('{"providers":{"p":{"models":[{"id":"m"}]}}}', "json"),
@@ -170,6 +186,13 @@ describe("model config panel", () => {
       "!Array.isArray(model.input)||inputTypes.indexOf(type)!==-1",
     );
     expect(html).toContain('var inputs=["text","image"].filter');
+  });
+
+  it("checks reasoning models by default unless explicitly disabled", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[{"id":"m"}]}}}', "json"),
+    );
+    expect(html).toContain("model.reasoning!==false");
   });
 
   it("uses CNY as the stored cost basis and converts only explicit USD display", () => {

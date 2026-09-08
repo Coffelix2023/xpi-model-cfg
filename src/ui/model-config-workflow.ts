@@ -34,6 +34,7 @@ interface PanelMessage {
     | "preview"
     | "validate";
   config?: ModelsConfig;
+  providerOrder?: string[];
 }
 
 export async function runModelConfigPanel(
@@ -42,17 +43,24 @@ export async function runModelConfigPanel(
   const baselineSource = await readFile(options.jsonPath, "utf8");
   let baselineHash = hashText(baselineSource);
   let sourceConfig = parseModelsConfig(baselineSource, "json");
+  let sourceProviderOrder = await readProviderOrder(
+    `${options.jsonPath}.order`,
+    sourceConfig,
+  );
   await writeFile(options.yamlPath, exportModelsConfigMirror(sourceConfig, "yaml"), {
     mode: 0o600,
   });
 
-  const window = options.glimpse.open(buildModelConfigPanelHtml(sourceConfig), {
-    frameless: false,
-    height: 680,
-    minWidth: MODEL_CONFIG_PANEL_MIN_WIDTH,
-    title: "xpi-model-cfg",
-    width: MODEL_CONFIG_WINDOW_WIDTH,
-  });
+  const window = options.glimpse.open(
+    buildModelConfigPanelHtml(sourceConfig, sourceProviderOrder),
+    {
+      frameless: false,
+      height: 680,
+      minWidth: MODEL_CONFIG_PANEL_MIN_WIDTH,
+      title: "xpi-model-cfg",
+      width: MODEL_CONFIG_WINDOW_WIDTH,
+    },
+  );
   let applying = false;
 
   window.on("ready", (info) => injectAppearance(window, info));
@@ -75,6 +83,10 @@ export async function runModelConfigPanel(
     }
 
     const nextConfig = parsePanelConfig(sourceConfig, message.config);
+    const nextProviderOrder = normalizeProviderOrder(
+      message.providerOrder ?? sourceProviderOrder,
+      nextConfig,
+    );
     if (message.action === "validate") {
       sendResult(window, true, "配置有效");
       return;
@@ -107,6 +119,14 @@ export async function runModelConfigPanel(
       await writeFile(options.yamlPath, exportModelsConfigMirror(nextConfig, "yaml"), {
         mode: 0o600,
       });
+      await writeFile(
+        `${options.jsonPath}.order`,
+        `${JSON.stringify(nextProviderOrder)}\n`,
+        {
+          mode: 0o600,
+        },
+      );
+      sourceProviderOrder = nextProviderOrder;
       sourceConfig = nextConfig;
       baselineHash = hashText(await readFile(options.jsonPath, "utf8"));
       sendResult(window, true, "已应用；已更新 YAML 镜像");
@@ -137,6 +157,7 @@ function decodePanelMessage(value: unknown): PanelMessage {
       return {
         action: value.action,
         config: validateConfigInput(value.config),
+        providerOrder: validateProviderOrder(value.providerOrder),
       };
     default:
       throw new Error("Unknown panel action");
@@ -146,6 +167,46 @@ function decodePanelMessage(value: unknown): PanelMessage {
 function validateConfigInput(value: unknown): ModelsConfig {
   if (!isRecord(value)) throw new Error("Panel message is missing config");
   return parseModelsConfig(JSON.stringify(value), "json");
+}
+
+function validateProviderOrder(value: unknown): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || !value.every((id) => typeof id === "string")) {
+    throw new Error("Panel message has an invalid provider order");
+  }
+  return value;
+}
+
+function normalizeProviderOrder(value: unknown, config: ModelsConfig): string[] {
+  const providerIds = Object.keys(config.providers);
+  const available = new Set(providerIds);
+  const order: string[] = [];
+  if (Array.isArray(value)) {
+    for (const providerId of value) {
+      if (
+        typeof providerId === "string" &&
+        available.has(providerId) &&
+        !order.includes(providerId)
+      ) {
+        order.push(providerId);
+      }
+    }
+  }
+  for (const providerId of providerIds) {
+    if (!order.includes(providerId)) order.push(providerId);
+  }
+  return order;
+}
+
+async function readProviderOrder(
+  path: string,
+  config: ModelsConfig,
+): Promise<string[]> {
+  try {
+    return normalizeProviderOrder(JSON.parse(await readFile(path, "utf8")), config);
+  } catch {
+    return Object.keys(config.providers);
+  }
 }
 
 function sendConfirmation(

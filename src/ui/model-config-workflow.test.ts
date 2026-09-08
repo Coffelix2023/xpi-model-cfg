@@ -122,6 +122,36 @@ describe("model config panel workflow", () => {
     expect(state.window.sent.join("\n")).not.toContain("备份");
     expect(state.window.sent.join("\n")).toContain("YAML");
   });
+  it("persists provider order in a sidecar and reloads it", async () => {
+    const state = await fixture(
+      '{"providers":{"10":{"models":[]},"2":{"models":[]}}}\n',
+    );
+    const config = parseModelsConfig(
+      '{"providers":{"10":{"models":[]},"2":{"models":[]}}}',
+      "json",
+    );
+    state.window.emit("message", {
+      action: "apply",
+      config,
+      providerOrder: [
+        "10",
+        "2",
+      ],
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(JSON.parse(await readFile(`${state.jsonPath}.order`, "utf8"))).toEqual([
+      "10",
+      "2",
+    ]);
+    await runModelConfigPanel({
+      glimpse: state.glimpse,
+      jsonPath: state.jsonPath,
+      notify: state.notify,
+      yamlPath: state.yamlPath,
+    });
+    const reopenedHtml = vi.mocked(state.glimpse.open).mock.calls[1]?.[0];
+    expect(reopenedHtml).toContain('providerOrder=["10","2"]');
+  });
 
   it("keeps an existing API key when another provider field changes", async () => {
     const state = await fixture(
