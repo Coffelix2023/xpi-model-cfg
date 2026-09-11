@@ -6,6 +6,10 @@ import {
   restoreRedactedValues,
 } from "./model-config-panel.ts";
 
+const PANEL_SCRIPT_PATTERN = /<script>([\s\S]*)<\/script>/;
+const COMPAT_FIELD_LIST_PATTERN = /\["supportsUsageInStreaming".*?\]/;
+const COMPAT_FIELD_NAME_PATTERN = /"([a-z][A-Za-z]*)"/g;
+
 describe("model config panel", () => {
   it("shows environment references but masks literal and command API keys", () => {
     const envReference = "prefix-$API_KEY-" + "${" + "OTHER}";
@@ -207,5 +211,124 @@ describe("model config panel", () => {
 
     expect(html).toContain('activeCurrency==="CNY"?number:number/7');
     expect(html).toContain('activeCurrency==="CNY"?value:value*7');
+  });
+
+  it("renders api-specific compat controls with unset-capable tri-state defaults", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[]}}}', "json"),
+    );
+
+    expect(html).toContain('<div class="form-grid hidden" id="compat-openai">');
+    expect(html).toContain('<div class="form-grid hidden" id="compat-anthropic">');
+    for (const id of [
+      "compat-max-tokens-field",
+      "compat-supports-usage-in-streaming",
+      "compat-supports-eager-tool-input-streaming",
+      "compat-supports-long-cache-retention",
+      "compat-force-adaptive-thinking",
+      "compat-allow-empty-signature",
+    ]) {
+      expect(html).toContain(`id="${id}"`);
+    }
+    expect(html).toContain('data-i18n="optDefaultTrue"');
+    expect(html).toContain('data-i18n="optDefaultFalse"');
+    expect(html).toContain('data-i18n="optDefaultAuto"');
+  });
+
+  it("labels every compat control and option in both languages", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[]}}}', "json"),
+    );
+
+    for (const key of [
+      "compatMaxTokensField",
+      "compatSupportsUsageInStreaming",
+      "compatSupportsEagerToolInputStreaming",
+      "compatSupportsLongCacheRetention",
+      "compatForceAdaptiveThinking",
+      "compatAllowEmptySignature",
+      "optDefaultAuto",
+      "optDefaultTrue",
+      "optDefaultFalse",
+    ]) {
+      expect(html.split(`${key}:`).length - 1).toBe(2);
+    }
+    expect(html).toContain("默认 (true)");
+    expect(html).toContain("默认 (false)");
+    expect(html).toContain("Default (true)");
+    expect(html).toContain("Default (false)");
+  });
+
+  it("refills compat values and shows only the group matching the provider api", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig(
+        '{"providers":{"p":{"api":"anthropic-messages","models":[]}}}',
+        "json",
+      ),
+    );
+
+    expect(html).toContain("var compat=provider.compat||{}");
+    expect(html).toContain(
+      'el("compat-openai").classList.toggle("hidden",api!=="openai-completions")',
+    );
+    expect(html).toContain(
+      'el("compat-anthropic").classList.toggle("hidden",api!=="anthropic-messages")',
+    );
+    expect(html).toContain('maxTokensNode.value=compat.maxTokensField||""');
+    expect(html).toContain('Array.from(maxTokensNode.querySelectorAll("option")).some');
+    expect(html).toContain('typeof compat[key]==="boolean"?String(compat[key]):""');
+  });
+
+  it("merges compat edits back without dropping unrelated keys", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig(
+        '{"providers":{"p":{"compat":{"openRouterRouting":{"only":["a"]},"unknownKey":true},"models":[]}}}',
+        "json",
+      ),
+    );
+
+    expect(html).toContain("var compat=Object.assign({},p.compat)");
+    expect(html).toContain('if(maxTokensValue==="")delete compat.maxTokensField');
+    expect(html).toContain('if(value==="")delete compat[key]');
+    expect(html).toContain('compat[key]=value==="true"');
+    expect(html).toContain(
+      "if(Object.keys(compat).length)p.compat=compat;else delete p.compat",
+    );
+  });
+
+  it("refreshes the compat groups when the provider api changes", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[]}}}', "json"),
+    );
+
+    expect(html).toContain(
+      'el("provider-api").addEventListener("change",function(){saveForm();renderForm()})',
+    );
+  });
+
+  it("compiles the panel script and derives every compat control id from its field list", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[]}}}', "json"),
+    );
+    const script = html.match(PANEL_SCRIPT_PATTERN)?.[1] ?? "";
+
+    expect(script.length).toBeGreaterThan(0);
+    expect(() => new Function(script)).not.toThrow();
+
+    const fields = html.match(COMPAT_FIELD_LIST_PATTERN)?.[0] ?? "";
+    const names = [
+      ...fields.matchAll(COMPAT_FIELD_NAME_PATTERN),
+    ].map((match) => match[1]);
+    expect(names).toEqual([
+      "supportsUsageInStreaming",
+      "supportsEagerToolInputStreaming",
+      "supportsLongCacheRetention",
+      "forceAdaptiveThinking",
+      "allowEmptySignature",
+    ]);
+    for (const name of names) {
+      const id = `compat-${name.replace(/[A-Z]/g, (character) => `-${character.toLowerCase()}`)}`;
+      expect(html).toContain(`id="${id}"`);
+    }
   });
 });
