@@ -2,9 +2,9 @@
 
 [English](./README.md) · **简体中文**
 
-**一个把 Pi 的 `models.json` 变成可点可改面板的 Pi Coding Agent 扩展 —— 按当前 `api` 类型只显示相关的 `compat` 开关,写回时逐字保留你手写的未知键。**
+**Pi扩展 - 可视化面板设置LLM供应商与模型参数配置,省去编写`models.json`烦恼**
 
-**A Pi Coding Agent extension that turns Pi's `models.json` into a clickable panel — it shows only the `compat` switches that matter for the selected `api`, and preserves unknown keys on write-back.**
+**A Pi Coding Agent extension that configures LLM providers and model parameters in a visual panel — no more hand-writing `models.json`.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 
