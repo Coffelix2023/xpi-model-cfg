@@ -72,17 +72,26 @@ pi remove git:github.com/Coffelix2023/xpi-model-cfg
 
 - **供应商**:`id`、`api`、`baseUrl`、`apiKey`、`headers`、`authHeader`,以及按 `api` 分组的 `compat` 开关。可拖放或用上下按钮排序,可新增与删除。
 - **模型**:`id`、`name`、`reasoning`、`contextWindow`、`maxTokens`、输入类型(`text` / `image`)、思考等级(`medium` / `high` / `xhigh`)、`cost`。
+- **启用开关**:供应商行与模型行各有一个复选框。关闭后该条目会从 `models.json` 移出并存入 `models.json.disabled`,面板仍会显示该条目(变暗)且可以继续编辑;重新启用则原样放回。Pi 只读 `models.json`,所以被关闭的条目会在下次重载后从模型目录中消失。
 - **`compat`**:`api` 为 `openai-completions` 时显示 `maxTokensField` 与 `supportsUsageInStreaming`;为 `anthropic-messages` 时显示 `supportsEagerToolInputStreaming`、`supportsLongCacheRetention`、`forceAdaptiveThinking`、`allowEmptySignature`。布尔项为「默认 / true / false」三态,选「默认」即不写入该键。其余 `api` 类型不显示 `compat` 分组。
 
 ### 写入与安全边界
 
-- 只编辑 `~/.pi/agent/models.json`,另维护两个伴生文件:`models.yml`(便于人工阅读的镜像)与 `models.json.order`(本扩展记录的供应商排序)。YAML 不是独立编辑源,也没有导入操作;不生成 `.bak.*`。
+- 只编辑 `~/.pi/agent/models.json`,另维护三个伴生文件:`models.yml`(启用配置的易读镜像)、`models.json.order`(本扩展记录的供应商排序,含已关闭的供应商)、`models.json.disabled`(被关闭的条目,权限 `0600`,因为被关闭的供应商仍含 `apiKey`)。YAML 不是独立编辑源,也没有导入操作;不生成 `.bak.*`。
+- 停用存储**先于** `models.json` 落盘:中途崩溃时每个条目仍完整留在 `models.json`;加载时 `models.json` 优先于过期条目,过期条目被忽略。没有任何条目被关闭时会删除该伴生文件。
 - 写入前先核对 `models.json` 是否被外部修改,一旦变化就拒绝写入;通过检查后以 `0600` 权限原子替换文件。
 - 字面 API Key 与 `!command` 引用在面板和差异中掩码;`$VAR` / `${VAR}` 环境变量表达式保持原文,扩展绝不解析或执行。
 - `compat` 是**合并**写回:被隐藏分组的键、以及 `openRouterRouting` 这类本面板未展示的键,都会逐字保留。
 - 模型 `cost` 以每 1M token 的 CNY 为存储基准;选 USD 只换算界面显示,保存时再换回 CNY。
 - 「校验」与「预览差异」不写文件。「应用」保存并保持窗口打开,「确定」保存并关闭,「取消」丢弃未应用修改。删除与保存都在面板内要求一次明确确认,保存确认会附上脱敏差异。
 - 本扩展不注册任何 Tool 或 hook,也不会替你重载模型列表:应用成功后需要在 Pi 内重载才会生效。
+
+### 启用开关的已知边界
+
+- 关闭与 Pi 内置同名的供应商时,移除的是你的覆盖配置,Pi 会重新注册该 id 的内置模型;面板只移动 `models.json` 中属于你的条目。
+- 同一供应商内模型 id 必须唯一,否则被关闭的模型在加载时无法被识别;Pi 自身也是按 id upsert 自定义模型。
+- 重新启用的模型会追加到该供应商模型列表末尾;供应商顺序不受影响,因为 `models.json.order` 保留了已关闭供应商的 id。
+- 被关闭的模型需 `/reload` 后才从目录消失;若它正是默认模型或当前模型,Pi 会自行回退。
 
 ## 开发
 
@@ -122,6 +131,7 @@ ln -s "$(pwd)" ~/.pi/agent/extensions/xpi-model-cfg   # 日常回路:在 Pi 内�
 └── src/
     ├── index.ts                     # 扩展入口(register 函数),注册 /xpi-model-cfg
     ├── lib/
+    │   ├── disabled-store.ts        # 停用条目:拆分、合并、伴生文件校验
     │   ├── models-config.ts         # 类型、校验、脱敏、应用前差异预览
     │   └── models-persistence.ts    # models.json 的原子写入
     └── ui/

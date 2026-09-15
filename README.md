@@ -72,17 +72,26 @@ Package-level debugging uses npm or git remote sources on purpose: a local-path 
 
 - **Providers** — `id`, `api`, `baseUrl`, `apiKey`, `headers`, `authHeader`, plus the `compat` switches for the selected `api`. Reorder by drag-and-drop or the up/down buttons; add and remove freely.
 - **Models** — `id`, `name`, `reasoning`, `contextWindow`, `maxTokens`, input types (`text` / `image`), thinking levels (`medium` / `high` / `xhigh`), and `cost`.
+- **Enable toggle** — every provider row and model row carries a checkbox. Switching one off moves that entry out of `models.json` into `models.json.disabled`, where the panel still shows it (dimmed) and keeps it editable; switching it back on restores it verbatim. Pi only reads `models.json`, so a switched-off entry leaves the model catalogue on the next reload.
 - **`compat`** — with `api: openai-completions` the panel shows `maxTokensField` and `supportsUsageInStreaming`; with `api: anthropic-messages` it shows `supportsEagerToolInputStreaming`, `supportsLongCacheRetention`, `forceAdaptiveThinking`, and `allowEmptySignature`. Boolean switches are tri-state (`Default` / `true` / `false`), and picking `Default` writes no key at all. No other `api` value shows a `compat` group.
 
 ### Write and safety boundaries
 
-- It edits `~/.pi/agent/models.json` and maintains two sidecars: `models.yml` (a human-readable mirror) and `models.json.order` (the provider order this extension remembers). YAML is not an independent editing source and has no import action; no `.bak.*` files are created.
+- It edits `~/.pi/agent/models.json` and maintains three sidecars: `models.yml` (a human-readable mirror of the enabled config), `models.json.order` (the provider order this extension remembers, switched-off providers included), and `models.json.disabled` (the switched-off entries, mode `0600` because a disabled provider still holds its `apiKey`). YAML is not an independent editing source and has no import action; no `.bak.*` files are created.
+- The disabled store is written **before** `models.json`, so a crash in between leaves every entry still in `models.json`; on load `models.json` wins over a stale store entry and the store is simply ignored. The sidecar is deleted once nothing is switched off.
 - Before writing, it verifies that `models.json` has not changed externally and refuses to write if it has. Once that check passes, it atomically replaces the file with mode `0600`.
 - Literal API keys and `!command` references are masked in the panel and in the diff; `$VAR` / `${VAR}` environment expressions stay verbatim and are never resolved or executed.
 - `compat` is written back as a **merge**: keys belonging to a hidden group, and keys this panel never shows such as `openRouterRouting`, survive byte-for-byte.
 - Model `cost` values are stored in CNY per 1M tokens; choosing USD only converts the display and converts back on save.
 - **Validate** and **Preview diff** never write files. **Apply** saves and keeps the window open, **OK** saves and closes it, and **Cancel** discards unapplied changes. Deletions and saves each require one explicit confirmation inside the panel, and save confirmations include the redacted diff.
 - This extension registers no tools and no hooks, and it will not reload your model list for you: reload Pi after a successful apply.
+
+### Known boundaries of the enable toggle
+
+- Switching off a provider whose id matches a Pi built-in provider removes your override; Pi then registers its own built-in models for that id again. The panel only moves your `models.json` entry.
+- Within one provider, model ids must stay unique for a switched-off model to be identified on load; Pi itself upserts custom models by id.
+- A re-enabled model returns at the end of its provider's model list. Provider order survives because `models.json.order` keeps switched-off provider ids.
+- A switched-off model leaves the catalogue only after `/reload`; if it was the default or the current model, Pi falls back on its own.
 
 ## Development
 
@@ -122,6 +131,7 @@ ln -s "$(pwd)" ~/.pi/agent/extensions/xpi-model-cfg   # live loop: /reload insid
 └── src/
     ├── index.ts                     # Extension entrypoint (register function), registers /xpi-model-cfg
     ├── lib/
+    │   ├── disabled-store.ts        # Switched-off entries: split, merge, sidecar validation
     │   ├── models-config.ts         # Types, validation, redaction, apply-time diff preview
     │   └── models-persistence.ts    # Atomic writes to models.json
     └── ui/
