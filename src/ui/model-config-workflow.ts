@@ -1,5 +1,13 @@
-import { readFile, writeFile } from "node:fs/promises";
-
+import { readFile, rm, writeFile } from "node:fs/promises";
+import {
+  type DisabledStore,
+  exportDisabledStore,
+  isEmptyDisabledStore,
+  mergePanelConfig,
+  type PanelConfig,
+  parseDisabledStore,
+  splitPanelConfig,
+} from "../lib/disabled-store.ts";
 import {
   buildApplyPreview,
   exportModelsConfigMirror,
@@ -7,7 +15,10 @@ import {
   type ModelsConfig,
   parseModelsConfig,
 } from "../lib/models-config.ts";
-import { writeModelsJsonAtomically } from "../lib/models-persistence.ts";
+import {
+  writeModelsJsonAtomically,
+  writeTextAtomically,
+} from "../lib/models-persistence.ts";
 import type { GlimpseModule, GlimpseWindow } from "./glimpse-runtime.ts";
 import {
   buildModelConfigPanelHtml,
@@ -17,7 +28,15 @@ import {
 
 const MODEL_CONFIG_WINDOW_WIDTH = 980;
 
+const EMPTY_DISABLED_STORE: DisabledStore = {
+  models: {},
+  providers: {},
+};
+const EXTERNAL_DISABLED_CHANGE_ERROR =
+  "Refusing to apply models config: external change detected in the disabled store";
+
 interface RunModelConfigPanelOptions {
+  disabledPath: string;
   glimpse: GlimpseModule;
   jsonPath: string;
   notify(message: string, level?: "info" | "warning" | "error"): void;
@@ -42,12 +61,15 @@ export async function runModelConfigPanel(
 ): Promise<GlimpseWindow> {
   const baselineSource = await readFile(options.jsonPath, "utf8");
   let baselineHash = hashText(baselineSource);
-  let sourceConfig = parseModelsConfig(baselineSource, "json");
+  const diskConfig = parseModelsConfig(baselineSource, "json");
+  const disabledSnapshot = await readDisabledStore(options.disabledPath);
+  let disabledHash = disabledSnapshot.hash;
+  let sourceConfig: PanelConfig = mergePanelConfig(diskConfig, disabledSnapshot.store);
   let sourceProviderOrder = await readProviderOrder(
     `${options.jsonPath}.order`,
     sourceConfig,
   );
-  await writeFile(options.yamlPath, exportModelsConfigMirror(sourceConfig, "yaml"), {
+  await writeFile(options.yamlPath, exportModelsConfigMirror(diskConfig, "yaml"), {
     mode: 0o600,
   });
 
@@ -93,6 +115,9 @@ export async function runModelConfigPanel(
     }
 
     const currentSource = await readFile(options.jsonPath, "utf8");
+    if ((await readDisabledHash(options.disabledPath)) !== disabledHash) {
+      throw new Error(EXTERNAL_DISABLED_CHANGE_ERROR);
+    }
     const preview = buildApplyPreview({
       baselineHash,
       currentConfig: parseModelsConfig(currentSource, "json"),
@@ -115,8 +140,18 @@ export async function runModelConfigPanel(
     if (applying) return;
     applying = true;
     try {
-      await writeModelsJsonAtomically(options.jsonPath, nextConfig);
-      await writeFile(options.yamlPath, exportModelsConfigMirror(nextConfig, "yaml"), {
+      const { disabled, enabled } = splitPanelConfig(nextConfig);
+      const disabledCount =
+        Object.keys(disabled.providers).length +
+        Object.values(disabled.models).reduce(
+          (total, models) => total + models.length,
+          0,
+        );
+      // Sidecar first: if the process dies before models.json is replaced, every
+      // entry is still in models.json and the store is simply ignored on load.
+      disabledHash = await writeDisabledStore(options.disabledPath, disabled);
+      await writeModelsJsonAtomically(options.jsonPath, enabled);
+      await writeFile(options.yamlPath, exportModelsConfigMirror(enabled, "yaml"), {
         mode: 0o600,
       });
       await writeFile(
@@ -129,7 +164,13 @@ export async function runModelConfigPanel(
       sourceProviderOrder = nextProviderOrder;
       sourceConfig = nextConfig;
       baselineHash = hashText(await readFile(options.jsonPath, "utf8"));
-      sendResult(window, true, "已应用；已更新 YAML 镜像");
+      sendResult(
+        window,
+        true,
+        disabledCount > 0
+          ? `已应用；已更新 YAML 镜像；${disabledCount} 项已移入停用存储`
+          : "已应用；已更新 YAML 镜像",
+      );
       options.notify("模型配置已写入，请重载 Pi 模型列表", "info");
       if (message.action === "confirm") window.close();
     } finally {
@@ -207,6 +248,70 @@ async function readProviderOrder(
   } catch {
     return Object.keys(config.providers);
   }
+}
+
+interface DisabledSnapshot {
+  hash: string;
+  store: DisabledStore;
+}
+
+/**
+ * Reads `<models.json>.disabled`. A missing sidecar means nothing is disabled; any
+ * other unreadable content (including an empty file, which would silently drop
+ * entries already moved out of models.json) is a hard failure naming the file.
+ */
+async function readDisabledStore(path: string): Promise<DisabledSnapshot> {
+  const source = await readDisabledSource(path);
+  if (source === undefined) {
+    return {
+      hash: hashText(""),
+      store: EMPTY_DISABLED_STORE,
+    };
+  }
+
+  try {
+    return {
+      hash: hashText(source),
+      store: parseDisabledStore(source),
+    };
+  } catch (error) {
+    throw new Error(
+      `Failed to read the disabled store ${path}: ${errorMessage(error)}`,
+    );
+  }
+}
+
+async function readDisabledHash(path: string): Promise<string> {
+  return hashText((await readDisabledSource(path)) ?? "");
+}
+
+/** Writes the sidecar, or removes it when nothing is disabled. Returns its hash. */
+async function writeDisabledStore(path: string, store: DisabledStore): Promise<string> {
+  if (isEmptyDisabledStore(store)) {
+    await rm(path, {
+      force: true,
+    });
+    return hashText("");
+  }
+
+  const source = exportDisabledStore(store);
+  await writeTextAtomically(path, source);
+
+  return hashText(source);
+}
+
+async function readDisabledSource(path: string): Promise<string | undefined> {
+  try {
+    return await readFile(path, "utf8");
+  } catch (error) {
+    if (isMissingFile(error)) return undefined;
+
+    throw error;
+  }
+}
+
+function isMissingFile(error: unknown): boolean {
+  return isRecord(error) && error.code === "ENOENT";
 }
 
 function sendConfirmation(

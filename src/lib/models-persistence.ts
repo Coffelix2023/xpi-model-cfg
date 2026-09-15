@@ -21,6 +21,19 @@ export async function writeModelsJsonAtomically(
   validateModelsConfig(config);
 
   const source = exportModelsConfigMirror(config, "json");
+  await writeTextAtomically(path, source);
+
+  return {
+    hash: hashText(source),
+    path,
+  };
+}
+
+/**
+ * Replaces `path` with `source` in one rename, so a crash never leaves a
+ * half-written file. Mode 0600 because sidecars can carry provider secrets.
+ */
+export async function writeTextAtomically(path: string, source: string): Promise<void> {
   const dir = dirname(path);
   const tempPath = `${path}.tmp.${process.pid}.${randomUUID()}`;
 
@@ -40,9 +53,4 @@ export async function writeModelsJsonAtomically(
     });
     throw error;
   }
-
-  return {
-    hash: hashText(source),
-    path,
-  };
 }

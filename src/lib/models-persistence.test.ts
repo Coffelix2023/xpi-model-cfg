@@ -5,7 +5,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { parseModelsConfig } from "./models-config.ts";
-import { writeModelsJsonAtomically } from "./models-persistence.ts";
+import {
+  writeModelsJsonAtomically,
+  writeTextAtomically,
+} from "./models-persistence.ts";
 
 const _INVALID_PROVIDERS_ERROR = /providers/i;
 describe("models config persistence", () => {
@@ -51,5 +54,19 @@ describe("models config persistence", () => {
     ).rejects.toThrow(_INVALID_PROVIDERS_ERROR);
 
     expect(await readFile(file, "utf8")).toBe(original);
+  });
+
+  it("writes arbitrary sidecar text with mode 0600 and leaves no temp file", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "xpi-model-cfg-"));
+    const file = join(dir, "models.json.disabled");
+
+    await writeTextAtomically(file, '{"providers":{},"models":{}}\n');
+
+    expect(await readFile(file, "utf8")).toBe('{"providers":{},"models":{}}\n');
+    expect((await readdir(dir)).filter((entry) => entry.includes(".tmp."))).toEqual([]);
+
+    if (process.platform !== "win32") {
+      expect((await stat(file)).mode & 0o777).toBe(0o600);
+    }
   });
 });

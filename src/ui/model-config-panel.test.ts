@@ -331,4 +331,69 @@ describe("model config panel", () => {
       expect(html).toContain(`id="${id}"`);
     }
   });
+
+  it("adds an enable toggle to every provider and model row", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[{"id":"m"}]}}}', "json"),
+    );
+
+    expect(html).toContain("function renderToggle(owner)");
+    expect(html).toContain('box.type="checkbox"');
+    expect(html).toContain("box.checked=owner.disabled!==true");
+    expect(html).toContain("row.appendChild(renderToggle(entry[1]))");
+    expect(html).toContain("row.appendChild(renderToggle(model))");
+    expect(html).toContain('(entry[1].disabled===true?" off":"")');
+    expect(html).toContain('(model.disabled===true?" off":"")');
+    expect(html).toContain(".item.off{color:var(--muted)}");
+  });
+
+  it("labels the enable toggle in both languages", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[]}}}', "json"),
+    );
+
+    expect(html.split("enableToggle:").length - 1).toBe(2);
+    expect(html).toContain("启用/关闭");
+    expect(html).toContain("Enable/disable");
+    expect(html).toContain('box.title=t("enableToggle")');
+    expect(html).toContain('box.setAttribute("aria-label",t("enableToggle"))');
+  });
+
+  it("keeps the enable marker through saveForm and off new entries", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[{"id":"m"}]}}}', "json"),
+    );
+    const script = html.match(PANEL_SCRIPT_PATTERN)?.[1] ?? "";
+
+    expect(() => new Function(script)).not.toThrow();
+    expect(script).toContain(
+      'box.addEventListener("click",function(event){event.stopPropagation()})',
+    );
+    expect(script).toContain(
+      'box.addEventListener("change",function(){saveForm();owner.disabled=!box.checked;render()})',
+    );
+    // saveForm mutates the selected objects in place and reuses provider references,
+    // so the marker survives an edit or a provider rename.
+    expect(script).toContain(
+      'var m=selectedModel();if(m){m.id=el("model-id").value.trim()',
+    );
+    expect(script).toContain("next[item[0]===oldId?newId:item[0]]=item[1]");
+    // Entries created inside the panel never carry the marker.
+    expect(script).toContain("config.providers[id]={models:[]}");
+    expect(script).toContain("[{id:id,contextWindow:300000,maxTokens:24000}]");
+    expect(script).not.toContain("disabled:true");
+  });
+
+  it("warns about the disabled store in the apply confirmation notes", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[]}}}', "json"),
+    );
+
+    expect(html.split(",{note:").length - 1).toBe(4);
+    expect(html).toContain("关闭的条目会从 models.json 移出，保存到本地停用存储");
+    expect(html).toContain("moved out of models.json into the local disabled store");
+    expect(html).toContain('<p class="dialog-note" id="confirm-note"></p>');
+    expect(html).toContain(".dialog-note:empty{display:none}");
+    expect(html).toContain('el("confirm-note").textContent=copy.note||""');
+  });
 });

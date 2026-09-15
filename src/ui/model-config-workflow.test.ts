@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 const EXTERNAL_CHANGE_ERROR = /external change/i;
+const DISABLED_STORE_ERROR = /disabled store/i;
 
 import { parseModelsConfig } from "../lib/models-config.ts";
 import type { GlimpseModule, GlimpseWindow } from "./glimpse-runtime.ts";
@@ -23,13 +24,21 @@ class FakeWindow extends EventEmitter implements GlimpseWindow {
   }
 }
 
-async function fixture(source = '{"providers":{"local":{"models":[{"id":"old"}]}}}\n') {
+async function fixture(
+  source = '{"providers":{"local":{"models":[{"id":"old"}]}}}\n',
+  disabled?: string,
+) {
   const dir = await mkdtemp(join(tmpdir(), "xpi-model-panel-"));
   const jsonPath = join(dir, "models.json");
   const yamlPath = join(dir, "models.yml");
   await writeFile(jsonPath, source, {
     mode: 0o600,
   });
+  if (disabled !== undefined) {
+    await writeFile(`${jsonPath}.disabled`, disabled, {
+      mode: 0o600,
+    });
+  }
   const window = new FakeWindow();
   const glimpse: GlimpseModule = {
     open: vi.fn(() => window),
@@ -37,6 +46,7 @@ async function fixture(source = '{"providers":{"local":{"models":[{"id":"old"}]}
   const notify = vi.fn();
 
   await runModelConfigPanel({
+    disabledPath: `${jsonPath}.disabled`,
     glimpse,
     jsonPath,
     notify,
@@ -67,6 +77,214 @@ describe("model config panel workflow", () => {
       title: "xpi-model-cfg",
       width: 980,
     });
+  });
+
+  it("shows disabled entries from the sidecar with their secrets masked", async () => {
+    const state = await fixture(
+      '{"providers":{"on":{"apiKey":"on-secret","models":[{"id":"on-1"}]}}}\n',
+      JSON.stringify({
+        models: {
+          on: [
+            {
+              id: "on-2",
+            },
+          ],
+        },
+        providers: {
+          off: {
+            apiKey: "off-secret",
+            models: [
+              {
+                id: "off-1",
+              },
+            ],
+          },
+        },
+      }),
+    );
+    const html = vi.mocked(state.glimpse.open).mock.calls[0]?.[0];
+
+    expect(html).toContain('"disabled":true');
+    expect(html).toContain('"off"');
+    expect(html).not.toContain("off-secret");
+    expect(html).not.toContain("on-secret");
+  });
+
+  it("leaves the panel unchanged when the sidecar is absent", async () => {
+    const state = await fixture();
+    const html = vi.mocked(state.glimpse.open).mock.calls[0]?.[0];
+
+    expect(html).not.toContain('"disabled":true');
+  });
+
+  it("fails closed when the disabled store is unreadable", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "xpi-model-panel-"));
+    const jsonPath = join(dir, "models.json");
+    const disabledPath = `${jsonPath}.disabled`;
+    await writeFile(jsonPath, '{"providers":{"local":{"models":[{"id":"old"}]}}}\n', {
+      mode: 0o600,
+    });
+    await writeFile(disabledPath, "{not json", {
+      mode: 0o600,
+    });
+    const glimpse: GlimpseModule = {
+      open: vi.fn(() => new FakeWindow()),
+    };
+
+    const opened = runModelConfigPanel({
+      disabledPath,
+      glimpse,
+      jsonPath,
+      notify: vi.fn(),
+      yamlPath: join(dir, "models.yml"),
+    });
+
+    await expect(opened).rejects.toThrow(DISABLED_STORE_ERROR);
+    await expect(opened).rejects.toThrow(disabledPath);
+    expect(glimpse.open).not.toHaveBeenCalled();
+  });
+
+  it("moves a disabled model into the sidecar and restores it on re-enable", async () => {
+    const state = await fixture(
+      '{"providers":{"local":{"apiKey":"secret","models":[{"id":"keep"},{"id":"off"}]}}}\n',
+    );
+    const disabledPath = `${state.jsonPath}.disabled`;
+
+    state.window.emit("message", {
+      action: "apply",
+      config: {
+        providers: {
+          local: {
+            apiKey: "secret",
+            models: [
+              {
+                id: "keep",
+              },
+              {
+                disabled: true,
+                id: "off",
+              },
+            ],
+          },
+        },
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(
+      parseModelsConfig(await readFile(state.jsonPath, "utf8"), "json").providers.local
+        ?.models,
+    ).toEqual([
+      {
+        id: "keep",
+      },
+    ]);
+    expect(JSON.parse(await readFile(disabledPath, "utf8"))).toEqual({
+      providers: {},
+      models: {
+        local: [
+          {
+            id: "off",
+          },
+        ],
+      },
+    });
+
+    state.window.emit("message", {
+      action: "apply",
+      config: {
+        providers: {
+          local: {
+            apiKey: "secret",
+            models: [
+              {
+                id: "keep",
+              },
+              {
+                id: "off",
+              },
+            ],
+          },
+        },
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(
+      parseModelsConfig(await readFile(state.jsonPath, "utf8"), "json").providers.local
+        ?.models,
+    ).toEqual([
+      {
+        id: "keep",
+      },
+      {
+        id: "off",
+      },
+    ]);
+    await expect(readFile(disabledPath, "utf8")).rejects.toThrow();
+    expect(state.window.sent.join("\n")).toContain("1 项已移入停用存储");
+  });
+
+  it("keeps a disabled provider's secrets in the sidecar", async () => {
+    const state = await fixture(
+      '{"providers":{"drop":{"apiKey":"secret","baseUrl":"https://drop.example.com","models":[{"id":"m"}]}}}\n',
+    );
+
+    state.window.emit("message", {
+      action: "apply",
+      config: {
+        providers: {
+          drop: {
+            apiKey: "secret",
+            baseUrl: "https://drop.example.com",
+            disabled: true,
+            models: [
+              {
+                id: "m",
+              },
+            ],
+          },
+        },
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(
+      parseModelsConfig(await readFile(state.jsonPath, "utf8"), "json").providers.drop,
+    ).toBeUndefined();
+    expect(JSON.parse(await readFile(`${state.jsonPath}.disabled`, "utf8"))).toEqual({
+      models: {},
+      providers: {
+        drop: {
+          apiKey: "secret",
+          baseUrl: "https://drop.example.com",
+          models: [
+            {
+              id: "m",
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it("blocks apply after an external disabled store change", async () => {
+    const state = await fixture(
+      '{"providers":{"local":{"models":[{"id":"old"}]}}}\n',
+      '{"providers":{},"models":{}}',
+    );
+    const disabledPath = `${state.jsonPath}.disabled`;
+    const external = '{"providers":{},"models":{"local":[{"id":"gone"}]}}';
+    await writeFile(disabledPath, external);
+
+    state.window.emit("message", {
+      action: "apply",
+      config: nextConfig,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(state.window.sent.join("\n")).toMatch(EXTERNAL_CHANGE_ERROR);
+    expect(await readFile(disabledPath, "utf8")).toBe(external);
   });
 
   it("creates a YAML draft and validates without writing JSON", async () => {
@@ -144,6 +362,7 @@ describe("model config panel workflow", () => {
       "2",
     ]);
     await runModelConfigPanel({
+      disabledPath: `${state.jsonPath}.disabled`,
       glimpse: state.glimpse,
       jsonPath: state.jsonPath,
       notify: state.notify,

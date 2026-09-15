@@ -8,10 +8,12 @@ import { runModelConfigPanel } from "./ui/model-config-workflow.ts";
 
 interface Dependencies {
   loadGlimpse: typeof loadGlimpse;
+  runPanel: typeof runModelConfigPanel;
 }
 
 const DEFAULT_DEPENDENCIES: Dependencies = {
   loadGlimpse,
+  runPanel: runModelConfigPanel,
 };
 
 export default function xpiModelCfg(
@@ -29,7 +31,8 @@ export default function xpiModelCfg(
         }
 
         const dir = join(homedir(), ".pi", "agent");
-        await runModelConfigPanel({
+        await dependencies.runPanel({
+          disabledPath: join(dir, "models.json.disabled"),
           glimpse,
           jsonPath: join(dir, "models.json"),
           yamlPath: join(dir, "models.yml"),

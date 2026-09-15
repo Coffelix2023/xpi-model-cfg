@@ -27,6 +27,7 @@ describe("xpi-model-cfg extension", () => {
         registerCommand,
       } as never,
       {
+        runPanel: vi.fn(),
         loadGlimpse: async () => null,
       },
     );
@@ -46,8 +47,11 @@ describe("xpi-model-cfg extension", () => {
     );
   });
 
-  it("opens the global models paths", async () => {
-    const open = vi.fn(() => ({
+  it("opens the global models paths with the disabled store beside them", async () => {
+    const glimpse = {
+      open: vi.fn(),
+    };
+    const runPanel = vi.fn(async () => ({
       close: vi.fn(),
       on: vi.fn(),
       send: vi.fn(),
@@ -57,21 +61,24 @@ describe("xpi-model-cfg extension", () => {
         registerCommand,
       } as never,
       {
-        loadGlimpse: async () => ({
-          open,
-        }),
+        runPanel: runPanel as never,
+        loadGlimpse: async () => glimpse,
       },
     );
     const command = registerCommand.mock.calls.at(-1)?.[1];
-    const notify = vi.fn();
 
     await command.handler("", {
       ui: {
-        notify,
+        notify: vi.fn(),
       },
     });
 
-    expect(open).toHaveBeenCalledOnce();
-    expect(join(homedir(), ".pi/agent/models.json")).toContain("models.json");
+    expect(runPanel).toHaveBeenCalledWith({
+      disabledPath: join(homedir(), ".pi/agent/models.json.disabled"),
+      glimpse,
+      jsonPath: join(homedir(), ".pi/agent/models.json"),
+      notify: expect.any(Function),
+      yamlPath: join(homedir(), ".pi/agent/models.yml"),
+    });
   });
 });
