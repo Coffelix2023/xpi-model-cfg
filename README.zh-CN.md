@@ -58,7 +58,7 @@ pi install git:github.com/Coffelix2023/xpi-model-cfg@main
 `pi install` 写入 `~/.pi/agent/settings.json`;加 `-l` 写入项目设置,项目被信任后 Pi 会自动安装。上面指向 `main`,会被 `pi update` 移动;需要可复现的版本时,请改用 release tag:
 
 ```bash
-pi install git:github.com/Coffelix2023/xpi-model-cfg@v1.0.1
+pi install git:github.com/Coffelix2023/xpi-model-cfg@1.0.2
 ```
 
 ```bash

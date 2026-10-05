@@ -58,7 +58,7 @@ pi install git:github.com/Coffelix2023/xpi-model-cfg@main
 `pi install` writes to `~/.pi/agent/settings.json`; `-l` writes to the project settings, which Pi installs automatically once the project is trusted. The commands above point at `main`, which `pi update` will move — switch to a release tag when you need a reproducible version:
 
 ```bash
-pi install git:github.com/Coffelix2023/xpi-model-cfg@v1.0.1
+pi install git:github.com/Coffelix2023/xpi-model-cfg@1.0.2
 ```
 
 ```bash
