@@ -7,6 +7,7 @@
 **Pi扩展 - 可视化面板设置LLM供应商与模型参数配置,省去编写`models.json`烦恼**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
+![Latest release](https://img.shields.io/github/v/release/Coffelix2023/xpi-model-cfg?style=for-the-badge)
 
 ```text
 > /xpi-model-cfg
@@ -37,6 +38,8 @@ It also stays inside its lane: an extension is a plugin loaded into the Pi main 
 - [Biome](https://biomejs.dev/) for lint and format
 - [Vitest](https://vitest.dev/) as the test runner
 
+Development and the gate suite are verified against **Pi 1.0.2**. The peer range for `@earendil-works/pi-coding-agent` stays `*` because this extension only calls `pi.registerCommand` and `ctx.ui.notify`, and neither signature changed in 1.0.
+
 `@earendil-works/pi-tui` and `typebox` are declared as optional peer dependencies in `package.json`, but nothing in `src/` imports them: this extension registers no tools, and its rendering does not go through pi-tui.
 
 ## Install
@@ -52,7 +55,11 @@ pi install git:github.com/Coffelix2023/xpi-model-cfg@main
 | Global (user settings) | `pi install git:github.com/Coffelix2023/xpi-model-cfg@main` |
 | This project only (`.pi/settings.json`) | `pi install -l git:github.com/Coffelix2023/xpi-model-cfg@main` |
 
-`pi install` writes to `~/.pi/agent/settings.json`; `-l` writes to the project settings, which Pi installs automatically once the project is trusted. The commands above point at `main`, which `pi update` will move — switch to a specific commit or tag when you need a reproducible version.
+`pi install` writes to `~/.pi/agent/settings.json`; `-l` writes to the project settings, which Pi installs automatically once the project is trusted. The commands above point at `main`, which `pi update` will move — switch to a release tag when you need a reproducible version:
+
+```bash
+pi install git:github.com/Coffelix2023/xpi-model-cfg@v1.0.1
+```
 
 ```bash
 pi list                              # installed packages
@@ -73,6 +80,7 @@ Package-level debugging uses npm or git remote sources on purpose: a local-path 
 - **Providers** — `id`, `api`, `baseUrl`, `apiKey`, `headers`, `authHeader`, plus the `compat` switches for the selected `api`. Reorder by drag-and-drop or the up/down buttons; add and remove freely.
 - **Models** — `id`, `name`, `reasoning`, `contextWindow`, `maxTokens`, input types (`text` / `image`), thinking levels (`medium` / `high` / `xhigh`), and `cost`.
 - **Enable toggle** — every provider row and model row carries a checkbox. Switching one off moves that entry out of `models.json` into `models.json.disabled`, where the panel still shows it (dimmed) and keeps it editable; switching it back on restores it verbatim. Pi only reads `models.json`, so a switched-off entry leaves the model catalogue on the next reload.
+- **Keys the panel does not edit** — model-level `samplingParams` and `samplingParamsByThinkingLevel` (the latter added in Pi 1.0.2 for per-thinking-level sampling overrides), `modelOverrides`, and any other key the panel does not show are written back untouched; the panel only rewrites the fields it owns.
 - **`compat`** — with `api: openai-completions` the panel shows `maxTokensField` and `supportsUsageInStreaming`; with `api: anthropic-messages` it shows `supportsEagerToolInputStreaming`, `supportsLongCacheRetention`, `forceAdaptiveThinking`, and `allowEmptySignature`. Boolean switches are tri-state (`Default` / `true` / `false`), and picking `Default` writes no key at all. No other `api` value shows a `compat` group.
 
 ### Write and safety boundaries
@@ -147,7 +155,7 @@ This project adopts the [Google Labs DESIGN.md format](https://github.com/google
 ## Conventions & constraints
 
 - **Glossary** — [`CONTEXT.md`](./CONTEXT.md) defines the repository's unified terminology; terms must not drift in code, docs, or commits.
-- **Git discipline** — Read [`docs/GIT-WORKFLOW.md`](./docs/GIT-WORKFLOW.md) and [`docs/GITHUB-GUARD.md`](./docs/GITHUB-GUARD.md) before committing or pushing. Do not push to `main` by default; use small, granular Conventional Commits.
+- **Git discipline** — Read [`docs/GIT-WORKFLOW.md`](./docs/GIT-WORKFLOW.md) and [`docs/GITHUB-GUARD.md`](./docs/GITHUB-GUARD.md) before committing or pushing. This repository is in stage one: commits go straight to `main` by default, no branches; use small, granular Conventional Commits.
 - **Token safety** — credentials and secret tokens are never written into code, logs, examples, or documentation.
 - **Agent contract** — [`AGENTS.md`](./AGENTS.md) is the single source of truth for this repository. When an oral agreement, older code, or this README disagrees with it, `AGENTS.md` wins.
 

@@ -7,6 +7,7 @@
 **A Pi Coding Agent extension that configures LLM providers and model parameters in a visual panel — no more hand-writing `models.json`.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
+![最新版本](https://img.shields.io/github/v/release/Coffelix2023/xpi-model-cfg?style=for-the-badge)
 
 ```text
 > /xpi-model-cfg
@@ -37,6 +38,8 @@
 - [Biome](https://biomejs.dev/) 负责 lint 与格式化
 - [Vitest](https://vitest.dev/) 作为测试运行器
 
+开发与门禁以 **Pi 1.0.2** 为验证基线。`@earendil-works/pi-coding-agent` 的 peer 范围仍保留 `*`:本扩展只调用 `pi.registerCommand` 与 `ctx.ui.notify`,这两个签名在 1.0 中未变。
+
 `@earendil-works/pi-tui` 与 `typebox` 在 `package.json` 中声明为可选 peer dependency,但当前源码没有 import:本扩展不注册 Tool,渲染也不走 pi-tui。
 
 ## 安装
@@ -52,7 +55,11 @@ pi install git:github.com/Coffelix2023/xpi-model-cfg@main
 | 全局(用户设置) | `pi install git:github.com/Coffelix2023/xpi-model-cfg@main` |
 | 仅当前项目(`.pi/settings.json`) | `pi install -l git:github.com/Coffelix2023/xpi-model-cfg@main` |
 
-`pi install` 写入 `~/.pi/agent/settings.json`;加 `-l` 写入项目设置,项目被信任后 Pi 会自动安装。上面指向 `main`,会被 `pi update` 移动;需要可复现的版本时,请改用具体的 commit 或 tag。
+`pi install` 写入 `~/.pi/agent/settings.json`;加 `-l` 写入项目设置,项目被信任后 Pi 会自动安装。上面指向 `main`,会被 `pi update` 移动;需要可复现的版本时,请改用 release tag:
+
+```bash
+pi install git:github.com/Coffelix2023/xpi-model-cfg@v1.0.1
+```
 
 ```bash
 pi list                              # 已安装的包
@@ -73,6 +80,7 @@ pi remove git:github.com/Coffelix2023/xpi-model-cfg
 - **供应商**:`id`、`api`、`baseUrl`、`apiKey`、`headers`、`authHeader`,以及按 `api` 分组的 `compat` 开关。可拖放或用上下按钮排序,可新增与删除。
 - **模型**:`id`、`name`、`reasoning`、`contextWindow`、`maxTokens`、输入类型(`text` / `image`)、思考等级(`medium` / `high` / `xhigh`)、`cost`。
 - **启用开关**:供应商行与模型行各有一个复选框。关闭后该条目会从 `models.json` 移出并存入 `models.json.disabled`,面板仍会显示该条目(变暗)且可以继续编辑;重新启用则原样放回。Pi 只读 `models.json`,所以被关闭的条目会在下次重载后从模型目录中消失。
+- **面板不编辑的键**:模型级 `samplingParams`、`samplingParamsByThinkingLevel`(Pi 1.0.2 新增,按思考等级覆盖采样参数)、`modelOverrides`,以及面板未展示的其他键都会原样写回;面板只重写自己负责的字段。
 - **`compat`**:`api` 为 `openai-completions` 时显示 `maxTokensField` 与 `supportsUsageInStreaming`;为 `anthropic-messages` 时显示 `supportsEagerToolInputStreaming`、`supportsLongCacheRetention`、`forceAdaptiveThinking`、`allowEmptySignature`。布尔项为「默认 / true / false」三态,选「默认」即不写入该键。其余 `api` 类型不显示 `compat` 分组。
 
 ### 写入与安全边界
@@ -147,7 +155,7 @@ ln -s "$(pwd)" ~/.pi/agent/extensions/xpi-model-cfg   # 日常回路:在 Pi 内�
 ## 约定与约束
 
 - **术语表**:[`CONTEXT.md`](./CONTEXT.md) 定义了本仓库的统一语言,代码、文档与提交中禁止术语漂移。
-- **Git 纪律**:提交或推送前先读 [`docs/GIT-WORKFLOW.md`](./docs/GIT-WORKFLOW.md) 与 [`docs/GITHUB-GUARD.md`](./docs/GITHUB-GUARD.md)。默认不直推 `main`,使用小粒度 Conventional Commits。
+- **Git 纪律**:提交或推送前先读 [`docs/GIT-WORKFLOW.md`](./docs/GIT-WORKFLOW.md) 与 [`docs/GITHUB-GUARD.md`](./docs/GITHUB-GUARD.md)。本仓库处于阶段一,默认在 `main` 上直接提交与推送,不建分支;使用小粒度 Conventional Commits。
 - **Token 安全**:密钥与 Token 绝不写入代码、日志、示例或文档。
 - **Agent 契约**:[`AGENTS.md`](./AGENTS.md) 是本仓库的唯一事实来源。口头约定、历史代码或本 README 与它冲突时,以 `AGENTS.md` 为准。
 
