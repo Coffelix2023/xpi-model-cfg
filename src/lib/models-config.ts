@@ -229,14 +229,14 @@ export interface ModelConfig extends JsonObject {
   cost?: CostConfig;
   id: string;
   input?: ModelInput[];
+  inputLimits?: JsonObject;
   maxTokens?: number;
   name?: string;
+  promptCache?: JsonObject;
   reasoning?: boolean;
   samplingParams?: SamplingParams;
-  thinkingLevelMap?: ThinkingLevelMap;
-  inputLimits?: JsonObject;
-  promptCache?: JsonObject;
   samplingParamsByThinkingLevel?: Record<string, SamplingParams>;
+  thinkingLevelMap?: ThinkingLevelMap;
 }
 
 export interface ModelOverrideConfig extends JsonObject {

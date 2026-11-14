@@ -82,7 +82,12 @@
     "lineEnding": "lf",
     "lineWidth": 120,
     "trailingNewline": true,
-    "useEditorconfig": false
+    "useEditorconfig": false,
+    //Biome 的 markdown formatter 会打断 DESIGN.md 等文件的 YAML frontmatter 缩进,故排除
+    "includes": [
+      "**",
+      "!**/*.md"
+    ]
   },
 
   /// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ JS - 配置
@@ -147,27 +152,6 @@
       },
       "correctness": {
         "noNodejsModules": "off"
-      },
-      "nursery": {
-        "useSortedClasses": {
-          //针对 tailwindcss的实例类排序
-          "fix": "safe",
-          "level": "on",
-          "options": {
-            "attributes": [
-              "className",
-              "class"
-            ],
-            "functions": [
-              "cva",
-              "cx",
-              "clsx",
-              "cn",
-              "tw",
-              "tw.*"
-            ]
-          }
-        }
       },
       //安全防御
       "security": {
