@@ -22,6 +22,7 @@ export interface GlimpseWindow {
     event: Event,
     listener: (...args: GlimpseEventMap[Event]) => void,
   ): void;
+  resize(width: number, height: number): void;
   send(source: string): void;
 }
 

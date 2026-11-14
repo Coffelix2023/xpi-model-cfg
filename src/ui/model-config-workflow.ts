@@ -51,9 +51,11 @@ interface PanelMessage {
     | "prepare-apply"
     | "prepare-confirm"
     | "preview"
+    | "resize"
     | "validate";
   config?: ModelsConfig;
   providerOrder?: string[];
+  width?: number;
 }
 
 export async function runModelConfigPanel(
@@ -104,7 +106,7 @@ export async function runModelConfigPanel(
       return;
     }
 
-    const nextConfig = parsePanelConfig(sourceConfig, message.config);
+    if (message.action === "resize") { if (typeof message.width === "number" && message.width > 0) window.resize(message.width, 680); return; } const nextConfig = parsePanelConfig(sourceConfig, message.config);
     const nextProviderOrder = normalizeProviderOrder(
       message.providerOrder ?? sourceProviderOrder,
       nextConfig,
@@ -199,6 +201,11 @@ function decodePanelMessage(value: unknown): PanelMessage {
         action: value.action,
         config: validateConfigInput(value.config),
         providerOrder: validateProviderOrder(value.providerOrder),
+      };
+    case "resize":
+      return {
+        action: value.action,
+        width: typeof value.width === "number" ? value.width : undefined,
       };
     default:
       throw new Error("Unknown panel action");

@@ -66,6 +66,7 @@ describe("wrapGlimpse", () => {
       close: vi.fn(),
       on: vi.fn(),
       send: vi.fn(),
+      resize: vi.fn(),
     };
     const module = {
       open: vi.fn(() => {

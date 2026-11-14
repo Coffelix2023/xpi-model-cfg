@@ -18,10 +18,10 @@ class FakeWindow extends EventEmitter implements GlimpseWindow {
   close(): void {
     this.closed = true;
   }
-
   send(source: string): void {
     this.sent.push(source);
   }
+  resize(width: number, height: number): void {}
 }
 
 async function fixture(
