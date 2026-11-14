@@ -30,7 +30,7 @@ export default function xpiModelCfg(
           return;
         }
 
-        const dir = join(homedir(), ".pi", "agent");
+        const dir = process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent");
         await dependencies.runPanel({
           disabledPath: join(dir, "models.json.disabled"),
           glimpse,

@@ -38,7 +38,7 @@
 - [Biome](https://biomejs.dev/) 负责 lint 与格式化
 - [Vitest](https://vitest.dev/) 作为测试运行器
 
-开发与门禁以 **Pi 1.0.2** 为验证基线。`@earendil-works/pi-coding-agent` 的 peer 范围仍保留 `*`:本扩展只调用 `pi.registerCommand` 与 `ctx.ui.notify`,这两个签名在 1.0 中未变。
+开发与门禁以 **Pi 1.5.2** 为验证基线。`@earendil-works/pi-coding-agent` 的 peer 范围仍保留 `*`:本扩展只调用 `pi.registerCommand` 与 `ctx.ui.notify`,这两个签名在 1.0 中未变。
 
 `@earendil-works/pi-tui` 与 `typebox` 在 `package.json` 中声明为可选 peer dependency,但当前源码没有 import:本扩展不注册 Tool,渲染也不走 pi-tui。
 
@@ -58,7 +58,7 @@ pi install git:github.com/Coffelix2023/xpi-model-cfg@main
 `pi install` 写入 `~/.pi/agent/settings.json`;加 `-l` 写入项目设置,项目被信任后 Pi 会自动安装。上面指向 `main`,会被 `pi update` 移动;需要可复现的版本时,请改用 release tag:
 
 ```bash
-pi install git:github.com/Coffelix2023/xpi-model-cfg@1.0.2
+pi install git:github.com/Coffelix2023/xpi-model-cfg@1.0.3
 ```
 
 ```bash

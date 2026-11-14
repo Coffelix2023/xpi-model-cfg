@@ -159,7 +159,7 @@ describe("model config panel", () => {
 
     expect(html).toContain('el("model-view").classList.toggle("hidden",!m)');
     expect(html).toContain(
-      "models.concat([{id:id,contextWindow:300000,maxTokens:24000}])",
+      "models.concat([{id:id,reasoning:true,contextWindow:300000,maxTokens:12000",
     );
     expect(html).toContain('el("model-context-window").value=model.contextWindow||""');
     expect(html).toContain('el("model-max-tokens").value=model.maxTokens||""');
@@ -380,7 +380,7 @@ describe("model config panel", () => {
     expect(script).toContain("next[item[0]===oldId?newId:item[0]]=item[1]");
     // Entries created inside the panel never carry the marker.
     expect(script).toContain("config.providers[id]={models:[]}");
-    expect(script).toContain("[{id:id,contextWindow:300000,maxTokens:24000}]");
+    expect(script).toContain("models.concat([{id:id,reasoning:true,contextWindow:300000,maxTokens:12000");
     expect(script).not.toContain("disabled:true");
   });
 

@@ -38,7 +38,7 @@ It also stays inside its lane: an extension is a plugin loaded into the Pi main 
 - [Biome](https://biomejs.dev/) for lint and format
 - [Vitest](https://vitest.dev/) as the test runner
 
-Development and the gate suite are verified against **Pi 1.0.2**. The peer range for `@earendil-works/pi-coding-agent` stays `*` because this extension only calls `pi.registerCommand` and `ctx.ui.notify`, and neither signature changed in 1.0.
+Development and the gate suite are verified against **Pi 1.5.2**. The peer range for `@earendil-works/pi-coding-agent` stays `*` because this extension only calls `pi.registerCommand` and `ctx.ui.notify`, and neither signature changed in 1.0.
 
 `@earendil-works/pi-tui` and `typebox` are declared as optional peer dependencies in `package.json`, but nothing in `src/` imports them: this extension registers no tools, and its rendering does not go through pi-tui.
 
@@ -58,7 +58,7 @@ pi install git:github.com/Coffelix2023/xpi-model-cfg@main
 `pi install` writes to `~/.pi/agent/settings.json`; `-l` writes to the project settings, which Pi installs automatically once the project is trusted. The commands above point at `main`, which `pi update` will move — switch to a release tag when you need a reproducible version:
 
 ```bash
-pi install git:github.com/Coffelix2023/xpi-model-cfg@1.0.2
+pi install git:github.com/Coffelix2023/xpi-model-cfg@1.0.3
 ```
 
 ```bash
@@ -78,7 +78,7 @@ Package-level debugging uses npm or git remote sources on purpose: a local-path 
 ### What it edits
 
 - **Providers** — `id`, `api`, `baseUrl`, `apiKey`, `headers`, `authHeader`, plus the `compat` switches for the selected `api`. Reorder by drag-and-drop or the up/down buttons; add and remove freely.
-- **Models** — `id`, `name`, `reasoning`, `contextWindow`, `maxTokens`, input types (`text` / `image`), thinking levels (`medium` / `high` / `xhigh`), and `cost`.
+- **Models** — `id`, `name`, `reasoning`, `contextWindow`, `maxTokens`, input types (`text` / `image`), thinking levels (`medium` / `high` / `xhigh`), and `cost` (with optional tiered pricing by `max context` and a live total preview). New models default to 300K context / 12K max output with medium+high+xhigh enabled.
 - **Enable toggle** — every provider row and model row carries a checkbox. Switching one off moves that entry out of `models.json` into `models.json.disabled`, where the panel still shows it (dimmed) and keeps it editable; switching it back on restores it verbatim. Pi only reads `models.json`, so a switched-off entry leaves the model catalogue on the next reload.
 - **Keys the panel does not edit** — model-level `samplingParams` and `samplingParamsByThinkingLevel` (the latter added in Pi 1.0.2 for per-thinking-level sampling overrides), `modelOverrides`, and any other key the panel does not show are written back untouched; the panel only rewrites the fields it owns.
 - **`compat`** — with `api: openai-completions` the panel shows `maxTokensField` and `supportsUsageInStreaming`; with `api: anthropic-messages` it shows `supportsEagerToolInputStreaming`, `supportsLongCacheRetention`, `forceAdaptiveThinking`, and `allowEmptySignature`. Boolean switches are tri-state (`Default` / `true` / `false`), and picking `Default` writes no key at all. No other `api` value shows a `compat` group.

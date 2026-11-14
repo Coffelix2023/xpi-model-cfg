@@ -36,6 +36,14 @@ export const MODEL_CONFIG_FIELD_GROUPS = {
     "thinkingFormat",
     "thinkingTokenBudgetField",
     "vercelGatewayRouting",
+    "allowedFallbackModels",
+    "promptCacheKeyMode",
+    "requiresNonNullAssistantContent",
+    "requiresToolsWithToolHistory",
+    "supportsMessageThreads",
+    "supportsMidConvoSystemMessages",
+    "supportsMidConvoToolAdditions",
+    "supportsMidConvoToolChanges",
   ],
   cost: [
     "input",
@@ -54,6 +62,9 @@ export const MODEL_CONFIG_FIELD_GROUPS = {
     "contextWindow",
     "maxTokens",
     "samplingParams",
+    "inputLimits",
+    "promptCache",
+    "samplingParamsByThinkingLevel",
     "cost",
     "compat",
   ],
@@ -172,6 +183,7 @@ export type SessionAffinityFormat =
 
 export interface CompatibilityConfig extends JsonObject {
   allowEmptySignature?: boolean;
+  allowedFallbackModels?: JsonObject[];
   cacheControlFormat?: "anthropic" | (string & {});
   chatTemplateArgs?: JsonObject;
   chatTemplateKwargs?: JsonObject;
@@ -179,10 +191,13 @@ export interface CompatibilityConfig extends JsonObject {
   forceAdaptiveThinking?: boolean;
   maxTokensField?: "max_completion_tokens" | "max_tokens" | (string & {});
   openRouterRouting?: JsonObject;
+  promptCacheKeyMode?: "auto" | "enabled" | "disabled" | (string & {});
   requiresAssistantAfterToolResult?: boolean;
+  requiresNonNullAssistantContent?: boolean;
   requiresReasoningContentOnAssistantMessages?: boolean;
   requiresThinkingAsText?: boolean;
   requiresToolResultName?: boolean;
+  requiresToolsWithToolHistory?: boolean;
   sendSessionAffinityHeaders?: boolean;
   sessionAffinityFormat?: SessionAffinityFormat;
   supportsCacheControlOnTools?: boolean;
@@ -190,7 +205,11 @@ export interface CompatibilityConfig extends JsonObject {
   supportsEagerToolInputStreaming?: boolean;
   supportsFinishReason?: boolean;
   supportsLongCacheRetention?: boolean;
+  supportsMessageThreads?: boolean;
   supportsMidConvoEffort?: boolean;
+  supportsMidConvoSystemMessages?: boolean;
+  supportsMidConvoToolAdditions?: boolean;
+  supportsMidConvoToolChanges?: boolean;
   supportsOpenAIGrammarTools?: boolean;
   supportsReasoningEffort?: boolean;
   supportsStore?: boolean;
@@ -215,6 +234,9 @@ export interface ModelConfig extends JsonObject {
   reasoning?: boolean;
   samplingParams?: SamplingParams;
   thinkingLevelMap?: ThinkingLevelMap;
+  inputLimits?: JsonObject;
+  promptCache?: JsonObject;
+  samplingParamsByThinkingLevel?: Record<string, SamplingParams>;
 }
 
 export interface ModelOverrideConfig extends JsonObject {
