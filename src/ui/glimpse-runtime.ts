@@ -22,7 +22,6 @@ export interface GlimpseWindow {
     event: Event,
     listener: (...args: GlimpseEventMap[Event]) => void,
   ): void;
-  resize(width: number, height: number): void;
   send(source: string): void;
 }
 
@@ -34,7 +33,13 @@ type ImportModule = (specifier: string) => Promise<unknown>;
 
 const importModule: ImportModule = (specifier) => import(specifier);
 
-const FALLBACK_DIR = join(process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent"), "npm", "node_modules", "glimpseui", "src");
+const FALLBACK_DIR = join(
+  process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent"),
+  "npm",
+  "node_modules",
+  "glimpseui",
+  "src",
+);
 const FALLBACK_MODULE_URL = pathToFileURL(join(FALLBACK_DIR, "glimpse.mjs")).href;
 const FALLBACK_BINARY = join(FALLBACK_DIR, "glimpse");
 
