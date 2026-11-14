@@ -61,7 +61,10 @@ header,.footer{flex:none;display:flex;align-items:center;gap:8px;padding:10px 14
 .dialog-message{max-height:360px;overflow:auto;user-select:text}
 .workspace{grid-template-columns:max-content max-content minmax(320px,1fr);min-width:${MODEL_CONFIG_PANEL_MIN_WIDTH}px}.item{white-space:nowrap;overflow:visible;text-overflow:clip}.input-types{display:flex;gap:12px}.input-types label{display:flex;align-items:center;gap:2px;margin:0}
 .item{display:flex;align-items:center;gap:2px}.item.off{color:var(--muted)}.item input[type="checkbox"]{flex:none;margin:0;padding:0;cursor:pointer}label:has(>input[type="checkbox"]){display:flex;align-items:center;gap:2px;margin:0}label input[type="checkbox"]{margin:0;padding:0;min-width:0}
-.tier-formula-row{display:flex;align-items:center;gap:6px}.tier-formula-row>label{flex:none;margin:0;min-width:11ch}.tier-formula-row>input{flex:1;min-width:0}.tier-symbol{flex:none;color:var(--muted)}.tier-mirror{flex:none;min-width:6ch;text-align:center;color:var(--ink);background:var(--surface-2);border:1px dashed var(--rule);border-radius:6px;padding:7px 6px}.tier-mirror:empty::after{content:"…"}.tier-legend{display:flex;gap:6px;color:var(--muted)}
+.tier-formula-row{display:flex;align-items:center;gap:6px}.tier-formula-row>label{flex:none;margin:0;min-width:11ch}.tier-formula-row>input{flex:1;min-width:0}.tier-symbol{flex:none;color:var(--muted)}.tier-mirror{flex:none;min-width:6ch;text-align:center;color:var(--ink);background:var(--surface-2);border:1px dashed var(--rule);border-radius:6px;padding:2px 6px}.tier-mirror:empty::after{content:"…"}.tier-legend{display:flex;gap:6px;color:var(--muted)}
+input[type="text"],input:not([type]),input[type="password"]{width:100%}
+input[type="number"]{width:calc(12ch + 30px);min-width:0;padding:2px 4px}
+.tier-formula-row>input{max-width:calc(12ch + 30px)}
 .dialog-note{margin:8px 0 0;color:var(--muted)}.dialog-note:empty{display:none}
 </style></head><body><div class="shell">
 <header><span class="title" data-i18n="title"></span><button class="tool" id="gd-lang">EN</button><button class="tool" id="gd-zoom-out">A−</button><button class="tool" id="gd-zoom-in">A+</button><button class="tool" id="gd-zoom-reset">⟲</button></header>
