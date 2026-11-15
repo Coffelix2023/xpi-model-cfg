@@ -170,8 +170,14 @@ describe("model config panel", () => {
     expect(html).toContain(
       "models.concat([{id:id,reasoning:true,contextWindow:300000,maxTokens:12000",
     );
-    expect(html).toContain('el("model-context-window").value=model.contextWindow||""');
-    expect(html).toContain('el("model-max-tokens").value=model.maxTokens||""');
+    expect(html).toContain(
+      'el("model-context-window").value=model.contextWindow?model.contextWindow/1000',
+    );
+    expect(html).toContain(
+      'el("model-max-tokens").value=model.maxTokens?model.maxTokens/1000',
+    );
+    expect(html).toContain('Math.round(Number(el("model-context-window").value)*1000)');
+    expect(html).toContain('Math.round(Number(el("model-max-tokens").value)*1000)');
   });
 
   it("defaults thinking levels and writes unchecked levels as null", () => {
