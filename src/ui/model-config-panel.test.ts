@@ -94,6 +94,15 @@ describe("model config panel", () => {
     expect(html).not.toContain("modelAdvanced");
   });
 
+  it("refreshes the tier mirror when the threshold input fires", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[{"id":"m"}]}}}', "json"),
+    );
+
+    expect(html).toContain("updateCostPreview()})}");
+    expect(html).not.toContain("syncAdaptiveCostWidth(id);updateCostPreview})");
+  });
+
   it("adds provider and model management controls with reorder and delete confirmation", () => {
     const html = buildModelConfigPanelHtml(
       parseModelsConfig(
