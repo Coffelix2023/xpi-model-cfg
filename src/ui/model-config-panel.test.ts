@@ -94,6 +94,16 @@ describe("model config panel", () => {
     expect(html).not.toContain("modelAdvanced");
   });
 
+  it("seeds the 272K threshold and shows a strict greater-than symbol", () => {
+    const html = buildModelConfigPanelHtml(
+      parseModelsConfig('{"providers":{"p":{"models":[{"id":"m"}]}}}', "json"),
+    );
+
+    expect(html).toContain('<span class="tier-symbol cost-tier-group">></span>');
+    expect(html).toContain(
+      'if(el("cost-tier-enabled").checked&&!el("cost-tier-threshold").value){el("cost-tier-threshold").value="272"',
+    );
+  });
   it("refreshes the tier mirror when the threshold input fires", () => {
     const html = buildModelConfigPanelHtml(
       parseModelsConfig('{"providers":{"p":{"models":[{"id":"m"}]}}}', "json"),
@@ -168,7 +178,7 @@ describe("model config panel", () => {
 
     expect(html).toContain('el("model-view").classList.toggle("hidden",!m)');
     expect(html).toContain(
-      "models.concat([{id:id,reasoning:true,contextWindow:300000,maxTokens:12000",
+      "models.concat([{id:id,reasoning:true,contextWindow:800000,maxTokens:12000",
     );
     expect(html).toContain(
       'el("model-context-window").value=model.contextWindow?model.contextWindow/1000',
@@ -396,7 +406,7 @@ describe("model config panel", () => {
     // Entries created inside the panel never carry the marker.
     expect(script).toContain("config.providers[id]={models:[]}");
     expect(script).toContain(
-      "models.concat([{id:id,reasoning:true,contextWindow:300000,maxTokens:12000",
+      "models.concat([{id:id,reasoning:true,contextWindow:800000,maxTokens:12000",
     );
     expect(script).not.toContain("disabled:true");
   });
