@@ -252,6 +252,8 @@ describe("model config panel", () => {
       "compat-supports-long-cache-retention",
       "compat-force-adaptive-thinking",
       "compat-allow-empty-signature",
+      "compat-supports-mid-convo-system-messages",
+      "compat-supports-mid-convo-effort",
     ]) {
       expect(html).toContain(`id="${id}"`);
     }
@@ -272,6 +274,8 @@ describe("model config panel", () => {
       "compatSupportsLongCacheRetention",
       "compatForceAdaptiveThinking",
       "compatAllowEmptySignature",
+      "compatSupportsMidConvoSystemMessages",
+      "compatSupportsMidConvoEffort",
       "optDefaultAuto",
       "optDefaultTrue",
       "optDefaultFalse",
@@ -350,6 +354,8 @@ describe("model config panel", () => {
       "supportsLongCacheRetention",
       "forceAdaptiveThinking",
       "allowEmptySignature",
+      "supportsMidConvoSystemMessages",
+      "supportsMidConvoEffort",
     ]);
     for (const name of names) {
       const id = `compat-${name.replace(/[A-Z]/g, (character) => `-${character.toLowerCase()}`)}`;

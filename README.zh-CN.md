@@ -81,7 +81,7 @@ pi remove git:github.com/Coffelix2023/xpi-model-cfg
 - **模型**:`id`、`name`、`reasoning`、`contextWindow`、`maxTokens`、输入类型(`text` / `image`)、思考等级(`medium` / `high` / `xhigh`)、`cost`。
 - **启用开关**:供应商行与模型行各有一个复选框。关闭后该条目会从 `models.json` 移出并存入 `models.json.disabled`,面板仍会显示该条目(变暗)且可以继续编辑;重新启用则原样放回。Pi 只读 `models.json`,所以被关闭的条目会在下次重载后从模型目录中消失。
 - **面板不编辑的键**:模型级 `samplingParams`、`samplingParamsByThinkingLevel`(Pi 1.0.2 新增,按思考等级覆盖采样参数)、`modelOverrides`,以及面板未展示的其他键都会原样写回;面板只重写自己负责的字段。
-- **`compat`**:`api` 为 `openai-completions` 时显示 `maxTokensField` 与 `supportsUsageInStreaming`;为 `anthropic-messages` 时显示 `supportsEagerToolInputStreaming`、`supportsLongCacheRetention`、`forceAdaptiveThinking`、`allowEmptySignature`。布尔项为「默认 / true / false」三态,选「默认」即不写入该键。其余 `api` 类型不显示 `compat` 分组。
+- **`compat`**:`api` 为 `openai-completions` 时显示 `maxTokensField` 与 `supportsUsageInStreaming`;为 `anthropic-messages` 时显示 `supportsEagerToolInputStreaming`、`supportsLongCacheRetention`、`forceAdaptiveThinking`、`allowEmptySignature`、`supportsMidConvoSystemMessages`、`supportsMidConvoEffort`（后两者默认 false；CommandCode 等严格代理保持默认即可）。布尔项为「默认 / true / false」三态,选「默认」即不写入该键。其余 `api` 类型不显示 `compat` 分组。
 
 ### 写入与安全边界
 
